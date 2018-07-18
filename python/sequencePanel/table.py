@@ -68,8 +68,7 @@ class Table(QTableWidget):
         self.controlKey = False
 
         colnames = ['', '', '', ' Id ', '  Valid  ', '  Type  ', '  Name  ', '  Comments  ', ' CmdStr ',
-                    '  VisitStart  ',
-                    '  VisitEnd  ', '  Anomalies  ']
+                    '  VisitStart  ', '  VisitEnd  ', '  Anomalies  ']
 
         nbRows = sum([experiment.nbRows for experiment in self.experiments])
 

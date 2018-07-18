@@ -53,12 +53,33 @@ class CommandLayout(ExperimentLayout):
         self.comments.setDisabled(True)
 
 
+class SacAlignLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SacAlign')
+        self.cmdStr.setText('spsait sac align exptime=2.0 focus=5.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+
+
+class SlitAlignLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SlitAlign')
+        self.cmdStr.setText('spsait slit throughfocus exptime=2.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+
+
+class DetAlignLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SlitAlign')
+        self.cmdStr.setText('spsait detector throughfocus exptime=2.0 cam=r1 startPosition=0,0,40 upBound=290'
+                            ' nbPosition=10 duplicate=2 switchOn=hgar switchOff=hgar')
+
 class Dialog(QDialog):
     def __init__(self, panelwidget):
         QDialog.__init__(self, panelwidget)
         self.panelwidget = panelwidget
         self.availableSeq = dict(Command=CommandLayout,
-                                 Experiment=ExperimentLayout)
+                                 SacAlign=SacAlignLayout,
+                                 SlitAlign=SlitAlignLayout,
+                                 DetAlign=DetAlignLayout
+                                 )
 
         vbox = QVBoxLayout()
         self.grid = QGridLayout()

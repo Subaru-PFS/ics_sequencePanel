@@ -3,7 +3,7 @@ __author__ = 'alefur'
 from functools import partial
 
 from PyQt5.QtWidgets import QCheckBox, QPushButton
-
+from opscore.utility.qstr import qstr
 from sequencePanel.widgets import IconButton, EyeButton
 
 
@@ -64,6 +64,7 @@ class ExperimentRow(object):
         self.cmdStr = cmdStr
         self.anomalies = ''
         self.subcommands = []
+        self.returnStr = ''
 
         self.valid = QCheckBox()
         self.valid.stateChanged.connect(self.setValid)
@@ -162,27 +163,27 @@ class ExperimentRow(object):
 
     def handleResult(self, resp):
         reply = resp.replyList[-1]
+        returnStr = reply.keywords.canonical(delimiter=';')
         code = resp.lastCode
 
-        if code == 'I':
-            self.updateInfo(reply, fail=False)
-        elif code == 'W':
-            self.updateInfo(reply, fail=True)
-        elif code in [':', 'F']:
-            self.terminate(code=code)
+        if code in [':', 'F']:
+            self.terminate(code=code, returnStr=qstr(returnStr))
+        else:
+            self.updateInfo(reply=reply)
 
         self.mwindow.printResponse(resp=resp)
 
-    def updateInfo(self, reply, fail):
+    def updateInfo(self, reply):
 
         if 'newExperiment' in reply.keywords:
             self.setExperiment(*reply.keywords['newExperiment'].values)
 
         if 'subCommand' in reply.keywords:
-            self.updateSubCommand(fail, *reply.keywords['subCommand'].values)
+            self.updateSubCommand(*reply.keywords['subCommand'].values)
 
-    def terminate(self, code):
+    def terminate(self, code, returnStr):
         self.setFinished() if code == ':' else self.setFailed()
+        self.returnStr = returnStr
 
         self.mwindow.sequencer.nextPlease()
 
@@ -197,16 +198,19 @@ class ExperimentRow(object):
 
         self.mwindow.updateTable()
 
-    def updateSubCommand(self, fail, id, returnStr=''):
+    def updateSubCommand(self, id, didFail, returnStr=''):
         id = int(id)
         subcommand = self.subcommands[id]
 
-        if fail:
+        if int(didFail):
             subcommand.setFailed()
             subcommand.anomalies = returnStr
         else:
             if returnStr:
-                subcommand.addVisits(newVisits=returnStr.split(';'))
+                try:
+                    subcommand.addVisits(newVisits=returnStr.split(';'))
+                except:
+                    pass
 
             subcommand.setFinished()
 
