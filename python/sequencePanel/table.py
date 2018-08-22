@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 
 from spsaitActor.logbook import Logbook
 
+
 class AnomaliesItem(QTableWidgetItem):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
              "aborted": ("#88919a", "#FFFFFF"), "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
@@ -26,7 +27,6 @@ class AnomaliesItem(QTableWidgetItem):
 
         anomalies = self.text()
         setattr(self.experiment, "anomalies", str(anomalies))
-
 
         try:
             QTimer.singleShot(50, partial(Logbook.newAnomalies, self.experiment.id, anomalies))
@@ -60,6 +60,19 @@ class CenteredItem(QTableWidgetItem):
     def valueChanged(self):
         val = self.text()
         setattr(self.experiment, self.attr, self.typeFunc(val))
+
+
+class CmdStrItem(CenteredItem):
+    def __init__(self, experiment):
+        CenteredItem.__init__(self, experiment=experiment, attr='cmdStr', typeFunc=str)
+
+    def valueChanged(self):
+        val = str(self.text())
+
+        if self.experiment.cmdDescriptor and not self.experiment.cmdDescriptor in val:
+            self.setText(self.experiment.cmdStr)
+        else:
+            self.experiment.cmdStr = val
 
 
 class Table(QTableWidget):
@@ -118,7 +131,7 @@ class Table(QTableWidget):
             else:
                 span = 2
                 cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-                self.setItem(rowNumber, 8, CenteredItem(experiment, 'cmdStr', str))
+                self.setItem(rowNumber, 8, CmdStrItem(experiment))
                 self.setItem(rowNumber, 9, CenteredItem(experiment, 'visitStart', int, lock=True))
                 self.setItem(rowNumber, 10, CenteredItem(experiment, 'visitEnd', int, lock=True))
                 self.setItem(rowNumber, 11, AnomaliesItem(experiment))
