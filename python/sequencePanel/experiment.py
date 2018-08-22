@@ -247,7 +247,8 @@ class ExperimentRow(object):
         self.mwindow.updateTable()
 
     def remove(self):
-        experiments = self.mwindow.experiments
-        experiments.remove(self)
+        if not self.isActive:
+            experiments = self.mwindow.experiments
+            experiments.remove(self)
 
-        self.mwindow.updateTable()
+            self.mwindow.updateTable()
