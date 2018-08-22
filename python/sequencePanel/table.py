@@ -3,8 +3,6 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
 
-from spsaitActor.logbook import Logbook
-
 
 class AnomaliesItem(QTableWidgetItem):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
@@ -29,7 +27,11 @@ class AnomaliesItem(QTableWidgetItem):
         setattr(self.experiment, "anomalies", str(anomalies))
 
         try:
-            QTimer.singleShot(50, partial(Logbook.newAnomalies, self.experiment.id, anomalies))
+            QTimer.singleShot(50,
+                              partial(self.experiment.panelwidget.sendCommand,
+                                      'spsait logbook experimentId=%i anomalies="%s"' % (self.experiment.id,
+                                                                                         anomalies.replace('"', "")),
+                                      5))
 
         except Exception as e:
             print(e)
