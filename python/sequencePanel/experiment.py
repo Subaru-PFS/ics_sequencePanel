@@ -54,10 +54,10 @@ class ExperimentRow(object):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
              "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
 
-    def __init__(self, mwindow, type, name, comments, cmdDescriptor, cmdStr):
+    def __init__(self, panelwidget, type, name, comments, cmdDescriptor, cmdStr):
         self.status = 'init'
         self.id = -1
-        self.mwindow = mwindow
+        self.panelwidget = panelwidget
         self.type = type
         self.name = name
         self.comments = comments
@@ -134,7 +134,7 @@ class ExperimentRow(object):
         self.status = status
         self.colorCheckbox()
 
-        self.mwindow.updateTable()
+        self.panelwidget.updateTable()
 
     def setActive(self):
         self.setStatus(status='active')
@@ -142,9 +142,9 @@ class ExperimentRow(object):
         name = 'name="%s"' % self.name.replace('"', "") if self.name else ''
         comments = 'comments="%s"' % self.comments.replace('"', "") if self.comments else ''
 
-        self.mwindow.sendCommand(fullCmd='%s %s %s' % (self.cmdStr, name, comments),
-                                 timeLim=7 * 24 * 3600,
-                                 callFunc=self.handleResult)
+        self.panelwidget.sendCommand(fullCmd='%s %s %s' % (self.cmdStr, name, comments),
+                                     timeLim=7 * 24 * 3600,
+                                     callFunc=self.handleResult)
 
     def setFinished(self):
         self.valid.setEnabled(False)
@@ -161,7 +161,7 @@ class ExperimentRow(object):
 
     def showSubcommands(self):
         self.buttonEye.setState(state=not self.buttonEye.state)
-        self.mwindow.updateTable()
+        self.panelwidget.updateTable()
 
     def handleResult(self, resp):
         reply = resp.replyList[-1]
@@ -173,7 +173,7 @@ class ExperimentRow(object):
         else:
             self.updateInfo(reply=reply)
 
-        self.mwindow.printResponse(resp=resp)
+        self.panelwidget.printResponse(resp=resp)
 
     def updateInfo(self, reply):
 
@@ -187,7 +187,7 @@ class ExperimentRow(object):
         self.setFinished() if code == ':' else self.setFailed()
         self.returnStr = returnStr
 
-        self.mwindow.sequencer.nextPlease()
+        self.panelwidget.sequencer.nextPlease()
 
     def setExperiment(self, experimentId, exptype, name, comments, cmdList):
 
@@ -198,7 +198,7 @@ class ExperimentRow(object):
         self.subcommands = [SubCommand(id=i, cmdStr=cmdStr) for i, cmdStr in enumerate(cmdList.split(';'))]
         self.buttonEye.setEnabled(True)
 
-        self.mwindow.updateTable()
+        self.panelwidget.updateTable()
 
     def updateSubCommand(self, id, didFail, returnStr=''):
         id = int(id)
@@ -221,7 +221,7 @@ class ExperimentRow(object):
         except IndexError:
             pass
 
-        self.mwindow.updateTable()
+        self.panelwidget.updateTable()
 
     def cleanupSubCommand(self):
         for subcommand in self.subcommands:
@@ -229,28 +229,28 @@ class ExperimentRow(object):
                 subcommand.setFailed()
 
     def moveUp(self):
-        experiments = self.mwindow.experiments
+        experiments = self.panelwidget.experiments
 
         new_ind = experiments.index(self) - 1
         new_ind = 0 if new_ind < 0 else new_ind
         experiments.remove(self)
         experiments.insert(new_ind, self)
 
-        self.mwindow.updateTable()
+        self.panelwidget.updateTable()
 
     def moveDown(self):
-        experiments = self.mwindow.experiments
+        experiments = self.panelwidget.experiments
 
         new_ind = experiments.index(self) + 1
         new_ind = len(experiments) - 1 if new_ind > len(experiments) - 1 else new_ind
         experiments.remove(self)
         experiments.insert(new_ind, self)
 
-        self.mwindow.updateTable()
+        self.panelwidget.updateTable()
 
     def remove(self):
         if not self.isActive:
-            experiments = self.mwindow.experiments
+            experiments = self.panelwidget.experiments
             experiments.remove(self)
 
-            self.mwindow.updateTable()
+            self.panelwidget.updateTable()

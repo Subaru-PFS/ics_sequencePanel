@@ -18,8 +18,7 @@ class SequencePanel(QMainWindow):
         self.display = d_width, d_height
         self.setName("%s.%s" % ("sequencePanel", cmdrName))
 
-        self.panelWidget = PanelWidget(self)
-        self.setCentralWidget(self.panelWidget)
+        self.setCentralWidget(PanelWidget(self))
 
         self.show()
 
