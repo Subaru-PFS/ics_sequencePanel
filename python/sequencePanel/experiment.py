@@ -54,13 +54,14 @@ class ExperimentRow(object):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
              "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
 
-    def __init__(self, mwindow, type, name, comments, cmdStr):
+    def __init__(self, mwindow, type, name, comments, cmdDescriptor, cmdStr):
         self.status = 'init'
         self.id = -1
         self.mwindow = mwindow
         self.type = type
         self.name = name
         self.comments = comments
+        self.cmdDescriptor = cmdDescriptor
         self.cmdStr = cmdStr
         self.anomalies = ''
         self.subcommands = []
@@ -84,7 +85,8 @@ class ExperimentRow(object):
 
     @property
     def kwargs(self):
-        return dict(type=self.type, name=self.name, comments=self.comments, cmdStr=self.cmdStr)
+        return dict(type=self.type, name=self.name, comments=self.comments, cmdDescriptor=self.cmdDescriptor,
+                    cmdStr=self.cmdStr)
 
     @property
     def isValid(self):

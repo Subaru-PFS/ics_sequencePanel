@@ -11,7 +11,7 @@ class ExperimentLayout(QGridLayout):
                  commandParse=('spsait expose', 'arc <exptime>')):
 
         QGridLayout.__init__(self)
-
+        self.cmdDescriptor = ''
         self.typeLabel = Label('Type')
         self.type = Label(type)
 
@@ -56,20 +56,24 @@ class CommandLayout(ExperimentLayout):
 class SacAlignLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SacAlign')
-        self.cmdStr.setText('spsait sac align exptime=2.0 focus=5.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+        self.cmdDescriptor = 'spsait sac align '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 focus=5.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
 
 
 class SlitAlignLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SlitAlign')
-        self.cmdStr.setText('spsait slit throughfocus exptime=2.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+        self.cmdDescriptor = 'spsait slit throughfocus '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
 
 
 class DetAlignLayout(ExperimentLayout):
     def __init__(self):
-        ExperimentLayout.__init__(self, type='SlitAlign')
-        self.cmdStr.setText('spsait detector throughfocus exptime=2.0 cam=r1 startPosition=0,0,40 upBound=290'
-                            ' nbPosition=10 duplicate=2 switchOn=hgar switchOff=hgar')
+        ExperimentLayout.__init__(self, type='DetAlign')
+        self.cmdDescriptor = 'spsait detector throughfocus '
+        self.cmdStr.setText(
+            self.cmdDescriptor + 'exptime=2.0 cam=r1 startPosition=0,0,40 upBound=290 nbPosition=10 duplicate=2 switchOn=hgar switchOff=hgar')
+
 
 class Dialog(QDialog):
     def __init__(self, panelwidget):
@@ -124,7 +128,10 @@ class Dialog(QDialog):
         type = self.seqLayout.type.text()
         name = self.seqLayout.name.text()
         comments = self.seqLayout.comments.text()
+        cmdDescriptor = self.seqLayout.cmdDescriptor
         cmdStr = self.seqLayout.cmdStr.text()
 
-        experiment = ExperimentRow(self.panelwidget, type=type, name=name, comments=comments, cmdStr=cmdStr)
+        experiment = ExperimentRow(self.panelwidget, type=type, name=name, comments=comments,
+                                   cmdDescriptor=cmdDescriptor, cmdStr=cmdStr)
+
         self.panelwidget.addExperiment(experiment=experiment)
