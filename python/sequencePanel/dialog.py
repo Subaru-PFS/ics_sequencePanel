@@ -22,7 +22,7 @@ class ExperimentLayout(QGridLayout):
         self.comments = LineEdit('')
 
         self.cmdStrLabel = Label('CmdStr')
-        self.cmdStr = LineEdit('spsait expose arc exptime=2.0 duplicate=3')
+        self.cmdStr = LineEdit('')
 
         self.addWidget(self.typeLabel, 1, 0)
         self.addWidget(self.type, 1, 1)
@@ -53,6 +53,25 @@ class CommandLayout(ExperimentLayout):
         self.comments.setDisabled(True)
 
 
+class ArcLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='Arcs')
+        self.cmdDescriptor = 'spsait expose arc '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2 switchOn=hgar,neon switchOff=hgar,neon attenuator=120 cam=r1')
+
+
+class FlatLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='Flats')
+        self.cmdDescriptor = 'spsait expose flat '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2 switchOff attenuator=120 cam=r1')
+
+class CalibLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='Calib')
+        self.cmdDescriptor = 'spsait calib '
+        self.cmdStr.setText(self.cmdDescriptor + 'nbias=1 ndarks=1 exptime=2.0 cam=r1')
+
 class SacAlignLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SacAlign')
@@ -75,14 +94,50 @@ class DetAlignLayout(ExperimentLayout):
             self.cmdDescriptor + 'exptime=2.0 cam=r1 startPosition=0,0,40 upBound=290 nbPosition=10 duplicate=2 switchOn=hgar switchOff=hgar')
 
 
+class DitheredFlatsLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='DitheredFlats')
+        self.cmdDescriptor = 'spsait dither flat '
+        self.cmdStr.setText(
+            self.cmdDescriptor + 'exptime=2.0 shift=0.3 nbPosition=10 pixels duplicate=2 switchOff cam=r1')
+
+
+class DitheredPsfLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='DitheredPsf')
+        self.cmdDescriptor = 'spsait dither psf '
+        self.cmdStr.setText(
+            self.cmdDescriptor + 'exptime=2.0 shift=0.5 pixels duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
+
+class DefocusedPsfLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='DefocusedPsf')
+        self.cmdDescriptor = 'spsait defocus '
+        self.cmdStr.setText(
+            self.cmdDescriptor + 'exptime=2.0 nbPosition=10 switchOn=hgar switchOff=hgar duplicate=2 cam=r1')
+
+class ImageStabilityLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='ImageStability')
+        self.cmdDescriptor = 'spsait imstab '
+        self.cmdStr.setText(
+            self.cmdDescriptor + 'exptime=2.0 nbPosition=10 delay=60 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
+
 class Dialog(QDialog):
     def __init__(self, panelwidget):
         QDialog.__init__(self, panelwidget)
         self.panelwidget = panelwidget
         self.availableSeq = dict(Command=CommandLayout,
+                                 Arcs=ArcLayout,
+                                 Flats=FlatLayout,
+                                 Calib=CalibLayout,
                                  SacAlign=SacAlignLayout,
                                  SlitAlign=SlitAlignLayout,
-                                 DetAlign=DetAlignLayout
+                                 DetAlign=DetAlignLayout,
+                                 DitheredFlats=DitheredFlatsLayout,
+                                 DitheredPsf=DitheredPsfLayout,
+                                 DefocusedPsf=DefocusedPsfLayout,
+                                 ImageStability=ImageStabilityLayout,
                                  )
 
         vbox = QVBoxLayout()
