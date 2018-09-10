@@ -66,6 +66,19 @@ class FlatLayout(ExperimentLayout):
         self.cmdDescriptor = 'spsait expose flat '
         self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2 switchOff attenuator=120 cam=r1')
 
+
+class BiasesLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='Biases')
+        self.cmdDescriptor = 'spsait bias '
+        self.cmdStr.setText(self.cmdDescriptor + 'duplicate=3 cam=r1')
+
+class DarksLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='Darks')
+        self.cmdDescriptor = 'spsait dark '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=3 cam=r1')
+
 class CalibLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='Calib')
@@ -130,7 +143,8 @@ class Dialog(QDialog):
         self.availableSeq = dict(Command=CommandLayout,
                                  Arcs=ArcLayout,
                                  Flats=FlatLayout,
-                                 Calib=CalibLayout,
+                                 Biases=BiasesLayout,
+                                 Darks=DarksLayout,
                                  SacAlign=SacAlignLayout,
                                  SlitAlign=SlitAlignLayout,
                                  DetAlign=DetAlignLayout,
