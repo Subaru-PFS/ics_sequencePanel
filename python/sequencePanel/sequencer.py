@@ -8,6 +8,14 @@ from PyQt5.QtWidgets import QGridLayout, QPushButton, QSpinBox, QProgressBar
 from sequencePanel.widgets import CLabel, Label
 
 
+class AbortButton(QPushButton):
+    def __init__(self):
+        QPushButton.__init__(self, 'ABORT')
+        self.setColor('red')
+
+    def setColor(self, background, color="white"):
+        self.setStyleSheet("QPushButton {font: 9pt; background-color: %s;color : %s ;}" % (background, color))
+
 class DelayBar(QProgressBar):
     def __init__(self, panelwidget):
         self.panelwidget = panelwidget
@@ -60,7 +68,7 @@ class Sequencer(QGridLayout):
         self.status = CLabel('OFF')
         self.startButton = QPushButton("START")
         self.stopButton = QPushButton("STOP")
-        self.abortButton = QPushButton("ABORT")
+        self.abortButton = AbortButton()
 
         self.delayBar = DelayBar(panelwidget=panelwidget)
         self.delayBar.setFixedSize(160, 28)
@@ -132,3 +140,4 @@ class Sequencer(QGridLayout):
 
     def abortSequence(self):
         self.panelwidget.sendCommand(fullCmd='spsait abort', timeLim=5)
+        self.stopSequence()
