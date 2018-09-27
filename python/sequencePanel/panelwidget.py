@@ -53,7 +53,7 @@ class PanelWidget(QWidget):
         d = Dialog(self)
 
     def addExperiment(self, experiment):
-        self.experiments.append(experiment)
+        self.experiments.insert(0, experiment)
         self.updateTable()
 
     def copyExperiment(self, experiments, filepath='temp.pickle'):
@@ -75,7 +75,7 @@ class PanelWidget(QWidget):
         newExp = []
 
         for t, kwargs in copiedExp:
-            newExp.append(t(self, **kwargs))
+            newExp.insert(0, t(self, **kwargs))
 
         self.experiments[ind:ind] = newExp
         self.updateTable()
@@ -90,7 +90,8 @@ class PanelWidget(QWidget):
         self.updateTable()
 
     def updateTable(self):
-        scrollValue = self.sequenceTable.verticalScrollBar().value()
+        
+        current = self.sequenceTable.verticalScrollBar().value()
         self.sequenceTable.hide()
         self.sequenceTable.close()
         self.sequenceTable.deleteLater()
@@ -98,7 +99,8 @@ class PanelWidget(QWidget):
 
         self.sequenceTable = Table(self)
         self.mainLayout.addWidget(self.sequenceTable, 1, 0, 35, 10)
-        self.sequenceTable.verticalScrollBar().setValue(scrollValue)
+
+        self.sequenceTable.verticalScrollBar().setCurrent(current=current)
 
     def sendCmdLine(self):
 

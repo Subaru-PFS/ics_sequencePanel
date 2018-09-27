@@ -1,7 +1,8 @@
 from functools import partial
+
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QScrollBar
 
 
 class AnomaliesItem(QTableWidgetItem):
@@ -75,6 +76,22 @@ class CmdStrItem(CenteredItem):
             self.setText(self.experiment.cmdStr)
         else:
             self.experiment.cmdStr = val
+
+
+class VScrollBar(QScrollBar):
+    def __init__(self, tablewidget):
+        QScrollBar.__init__(self, tablewidget)
+        self.current = False
+
+    def setCurrent(self, current):
+        self.current = current
+
+    def paintEvent(self, event):
+        if self.current:
+            value = min(self.current, self.maximum())
+            self.setValue(value)
+            self.current = False
+        QScrollBar.paintEvent(self, event)
 
 
 class Table(QTableWidget):
@@ -153,6 +170,8 @@ class Table(QTableWidget):
         self.setFont(self.getFont())
         self.horizontalHeader().setFont(self.getFont(size=11))
 
+        self.setVerticalScrollBar(VScrollBar(self))
+
     @property
     def experiments(self):
         return self.panelwidget.experiments
@@ -181,7 +200,7 @@ class Table(QTableWidget):
 
             if QKeyEvent.key() == Qt.Key_C and self.controlKey:
 
-                selectedExp = [item.experiment for item in self.selectedItems()]
+                selectedExp = [item.experiment for item in reversed(self.selectedItems())]
                 self.panelwidget.copyExperiment(selectedExp)
 
                 for range in self.selectedRanges():
@@ -189,9 +208,9 @@ class Table(QTableWidget):
 
             elif QKeyEvent.key() == Qt.Key_V and self.controlKey:
                 if self.selectedRanges():
-                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2 + 1
+                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2
                 else:
-                    ind = len(self.experiments)
+                    ind = 0
 
                 self.panelwidget.pasteExperiment(ind)
 

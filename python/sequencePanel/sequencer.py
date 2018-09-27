@@ -98,7 +98,7 @@ class Sequencer(QGridLayout):
 
     @property
     def validated(self):
-        return [experiment for experiment in self.panelwidget.experiments if experiment.isValid]
+        return [experiment for experiment in reversed(self.panelwidget.experiments) if experiment.isValid]
 
     def startSequence(self):
         self.startButton.setVisible(False)
