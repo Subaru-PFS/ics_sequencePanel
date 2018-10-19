@@ -169,8 +169,9 @@ class ExperimentRow(object):
         status = "valid" if state == 2 else "init"
         self.setStatus(status=status)
 
-    def showSubcommands(self):
-        self.buttonEye.setState(state=not self.buttonEye.state)
+    def showSubcommands(self, bool=None):
+        state = not self.buttonEye.state if bool is None else bool
+        self.buttonEye.setState(state=state)
         self.panelwidget.updateTable()
 
     def handleResult(self, resp):
@@ -196,6 +197,7 @@ class ExperimentRow(object):
     def terminate(self, code, returnStr):
         self.setFinished() if code == ':' else self.setFailed()
         self.returnStr = returnStr
+        self.showSubcommands(bool=False)
 
         self.panelwidget.sequencer.nextPlease()
 
@@ -207,6 +209,7 @@ class ExperimentRow(object):
         self.comments = comments
         self.subcommands = [SubCommand(id=i, cmdStr=cmdStr) for i, cmdStr in enumerate(cmdList.split(';'))]
         self.buttonEye.setEnabled(True)
+        self.showSubcommands(bool=True)
 
         self.panelwidget.updateTable()
 
