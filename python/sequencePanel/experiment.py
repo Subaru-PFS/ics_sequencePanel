@@ -15,6 +15,7 @@ class SubCommand(object):
         self.visits = []
 
         self.anomalies = ''
+        self.returnStr = ''
         self.status = 'valid'
         if id == 0:
             self.setActive()

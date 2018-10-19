@@ -110,7 +110,7 @@ class Table(QTableWidget):
         self.controlKey = False
 
         colnames = ['', '', '', ' Id ', '  Valid  ', '  Type  ', '  Name  ', '  Comments  ', ' CmdStr ',
-                    '  VisitStart  ', '  VisitEnd  ', '  Anomalies  ']
+                    '  VisitStart  ', '  VisitEnd  ', '  Anomalies  ', '  CmdError  ']
 
         nbRows = sum([experiment.nbRows for experiment in self.experiments])
 
@@ -147,24 +147,27 @@ class Table(QTableWidget):
                         self.setItem(rowNumber + nb, 8, CenteredItem(subcommand, 'cmdStr', str))
                         self.setItem(rowNumber + nb, 9, CenteredItem(subcommand, 'visitStart', int, lock=True))
                         self.setItem(rowNumber + nb, 10, CenteredItem(subcommand, 'visitEnd', int, lock=True))
-                        self.setItem(rowNumber + nb, 11, CenteredItem(subcommand, 'anomalies', str))
+                        self.setItem(rowNumber + nb, 11, CenteredItem(subcommand, 'anomalies', str, lock=True))
+                        self.setItem(rowNumber + nb, 12, CenteredItem(subcommand, 'returnStr', str, lock=True))
                     nb += 1
                 else:
                     subcommand = experiment.subcommands[0]
                     span = 2
-                    cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                    cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
                     self.setItem(rowNumber, 8, CenteredItem(subcommand, 'cmdStr', str))
                     self.setItem(rowNumber, 9, CenteredItem(subcommand, 'visitStart', int, lock=True))
                     self.setItem(rowNumber, 10, CenteredItem(subcommand, 'visitEnd', int, lock=True))
-                    self.setItem(rowNumber, 11, CenteredItem(subcommand, 'anomalies', str))
+                    self.setItem(rowNumber, 11, CenteredItem(subcommand, 'anomalies', str, lock=True))
+                    self.setItem(rowNumber, 12, CenteredItem(subcommand, 'returnStr', str, lock=True))
 
             else:
                 span = 2
-                cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
                 self.setItem(rowNumber, 8, CmdStrItem(experiment))
                 self.setItem(rowNumber, 9, CenteredItem(experiment, 'visitStart', int, lock=True))
                 self.setItem(rowNumber, 10, CenteredItem(experiment, 'visitEnd', int, lock=True))
                 self.setItem(rowNumber, 11, AnomaliesItem(experiment))
+                self.setItem(rowNumber, 12, CenteredItem(experiment, 'returnStr', str, lock=True))
 
             for col in cols:
                 self.setSpan(rowNumber, col, span, 1)
