@@ -80,17 +80,27 @@ class CmdStrItem(CenteredItem):
 
 class VScrollBar(QScrollBar):
     def __init__(self, tablewidget):
+        self.panelwidget = tablewidget.panelwidget
         QScrollBar.__init__(self, tablewidget)
         self.current = False
 
     def setCurrent(self, current):
         self.current = current
 
-    def paintEvent(self, event):
+    def paintEvent(self, event, a=0.058394160, b=0.4671533):
         if self.current:
             value = min(self.current, self.maximum())
             self.setValue(value)
             self.current = False
+
+        if self.panelwidget.current and self.panelwidget.mouseMove.userInactive:
+            currInd = self.panelwidget.current - 1
+            topHeight = sum([exp.nbRows for exp in self.panelwidget.experiments[:currInd]])
+            barSize = a * self.parent().height() + b
+            center = topHeight + self.panelwidget.experiments[currInd].height
+            value = round(center - barSize / 2)
+            self.setValue(value)
+
         QScrollBar.paintEvent(self, event)
 
 
@@ -113,6 +123,7 @@ class Table(QTableWidget):
 
         rowNumber = 0
         for experiment in self.experiments:
+            experiment.rowNumber = rowNumber
             self.setRowHeight(rowNumber, 14)
             self.setRowHeight(rowNumber + 1, 14)
 
@@ -200,7 +211,7 @@ class Table(QTableWidget):
 
             if QKeyEvent.key() == Qt.Key_C and self.controlKey:
 
-                selectedExp = [item.experiment for item in reversed(self.selectedItems())]
+                selectedExp = [item.experiment for item in self.selectedItems()]
                 self.panelwidget.copyExperiment(selectedExp)
 
                 for range in self.selectedRanges():
@@ -208,9 +219,9 @@ class Table(QTableWidget):
 
             elif QKeyEvent.key() == Qt.Key_V and self.controlKey:
                 if self.selectedRanges():
-                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2
+                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2 + 1
                 else:
-                    ind = 0
+                    ind = len(self.experiments)
 
                 self.panelwidget.pasteExperiment(ind)
 

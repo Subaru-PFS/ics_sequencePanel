@@ -2,7 +2,8 @@ __author__ = 'alefur'
 
 from functools import partial
 
-from PyQt5.QtWidgets import QCheckBox, QPushButton
+import numpy as np
+from PyQt5.QtWidgets import QCheckBox
 from opscore.utility.qstr import qstr
 from sequencePanel.widgets import IconButton, EyeButton
 
@@ -21,6 +22,10 @@ class SubCommand(object):
     @property
     def isFinished(self):
         return self.status == 'finished'
+
+    @property
+    def isActive(self):
+        return self.status == 'active'
 
     @property
     def visitStart(self):
@@ -102,10 +107,15 @@ class ExperimentRow(object):
 
     @property
     def nbRows(self):
-
         nbRows = len(self.subcommands) if (self.showSub and self.subcommands) else 2
         nbRows = 2 if nbRows < 2 else nbRows
         return nbRows
+
+    @property
+    def height(self):
+        isActive = [subcommand.isActive for subcommand in self.subcommands]
+        height = (np.argmax(isActive) + 0.5) if (self.showSub and isActive) else 1
+        return height
 
     @property
     def visitStart(self):

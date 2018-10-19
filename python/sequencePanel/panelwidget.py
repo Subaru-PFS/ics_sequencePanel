@@ -2,12 +2,33 @@ __author__ = 'alefur'
 
 import os
 import pickle
+import time
 
+import numpy as np
 from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, QFileDialog
 from sequencePanel.dialog import Dialog
 from sequencePanel.sequencer import Sequencer
 from sequencePanel.table import Table
 from sequencePanel.widgets import LogArea
+
+
+class MouseMove(object):
+    timeout = 5
+
+    def __init__(self, x, y):
+        self.t = time.time()
+        self.x = x
+        self.y = y
+
+    @property
+    def userInactive(self):
+        return (time.time() - self.t) > MouseMove.timeout
+
+    def checkPosition(self, x, y):
+        if not (self.x == x and self.y == y):
+            self.x = x
+            self.y = y
+            self.t = time.time()
 
 
 class PanelWidget(QWidget):
@@ -18,6 +39,7 @@ class PanelWidget(QWidget):
                             'F': 3, '!': 4}
         self.printLevel = self.printLevels['I']
         self.experiments = []
+        self.mouseMove = MouseMove(0, 0)
 
         QWidget.__init__(self)
         self.mwindow = mwindow
@@ -44,16 +66,25 @@ class PanelWidget(QWidget):
 
         self.setMinimumWidth(920)
         self.setLayout(self.mainLayout)
+        self.setMouseTracking(True)
 
     @property
     def actor(self):
         return self.mwindow.actor
 
+    @property
+    def current(self):
+        areActive = [experiment.isActive for experiment in self.experiments]
+        if not True in areActive:
+            return False
+        else:
+            return np.argmax(areActive) + 1
+
     def addSequence(self):
         d = Dialog(self)
 
     def addExperiment(self, experiment):
-        self.experiments.insert(0, experiment)
+        self.experiments.append(experiment)
         self.updateTable()
 
     def copyExperiment(self, experiments, filepath='temp.pickle'):
@@ -75,7 +106,7 @@ class PanelWidget(QWidget):
         newExp = []
 
         for t, kwargs in copiedExp:
-            newExp.insert(0, t(self, **kwargs))
+            newExp.append(t(self, **kwargs))
 
         self.experiments[ind:ind] = newExp
         self.updateTable()
@@ -90,8 +121,9 @@ class PanelWidget(QWidget):
         self.updateTable()
 
     def updateTable(self):
-        
+
         current = self.sequenceTable.verticalScrollBar().value()
+
         self.sequenceTable.hide()
         self.sequenceTable.close()
         self.sequenceTable.deleteLater()
@@ -184,3 +216,7 @@ class PanelWidget(QWidget):
     def clearDone(self):
         toRemove = [experiment for experiment in self.experiments if experiment.status in ['finished', 'failed']]
         self.removeExperiment(toRemove)
+
+    def mouseMoveEvent(self, event):
+        self.mouseMove.checkPosition(x=event.x(), y=event.y())
+        QWidget.mouseMoveEvent(self, event)
