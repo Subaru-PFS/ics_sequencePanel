@@ -52,8 +52,8 @@ class CenteredItem(QTableWidgetItem):
         QTableWidgetItem.__init__(self, str(getattr(experiment, attr)))
         self.setTextAlignment(align)
 
-        if experiment.status != "init" or lock:
-            self.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        if lock:
+            self.setFlags(Qt.ItemIsEditable)
 
         back, col = CenteredItem.color[experiment.status]
 
@@ -61,9 +61,11 @@ class CenteredItem(QTableWidgetItem):
         self.setBackground(QColor(back))
 
     def valueChanged(self):
-        val = self.text()
-        setattr(self.experiment, self.attr, self.typeFunc(val))
-
+        if self.experiment.status == 'init':
+            val = self.text()
+            setattr(self.experiment, self.attr, self.typeFunc(val))
+        else:
+            self.setText(str(getattr(self.experiment, self.attr)))
 
 class CmdStrItem(CenteredItem):
     def __init__(self, experiment):
