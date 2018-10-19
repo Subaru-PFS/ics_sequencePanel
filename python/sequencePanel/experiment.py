@@ -51,7 +51,7 @@ class SubCommand(object):
         self.status = 'active'
 
     def addVisits(self, newVisits):
-        newVisits = [int(visit) for visit in newVisits]
+        newVisits = [int(visit) for visit in newVisits if visit]
         self.visits.extend(newVisits)
 
 
@@ -169,8 +169,9 @@ class ExperimentRow(object):
         status = "valid" if state == 2 else "init"
         self.setStatus(status=status)
 
-    def showSubcommands(self, bool=None):
+    def showSubcommands(self, *args, bool=None):
         state = not self.buttonEye.state if bool is None else bool
+
         self.buttonEye.setState(state=state)
         self.panelwidget.updateTable()
 
@@ -217,17 +218,8 @@ class ExperimentRow(object):
         id = int(id)
         subcommand = self.subcommands[id]
 
-        if int(didFail):
-            subcommand.setFailed()
-            subcommand.anomalies = returnStr
-        else:
-            if returnStr:
-                try:
-                    subcommand.addVisits(newVisits=returnStr.split(';'))
-                except:
-                    pass
-
-            subcommand.setFinished()
+        subcommand.setFailed() if int(didFail) else subcommand.setFinished()
+        subcommand.addVisits(newVisits=returnStr.split(';'))
 
         try:
             self.subcommands[id + 1].setActive()
