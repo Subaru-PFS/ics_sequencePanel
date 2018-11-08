@@ -149,6 +149,7 @@ class ExperimentRow(object):
 
     def setActive(self):
         self.setStatus(status='active')
+        self.valid.setEnabled(False)
 
         name = 'name="%s"' % self.name.replace('"', "") if self.name else ''
         comments = 'comments="%s"' % self.comments.replace('"', "") if self.comments else ''
