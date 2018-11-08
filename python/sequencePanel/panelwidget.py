@@ -73,7 +73,7 @@ class PanelWidget(QWidget):
         return self.mwindow.actor
 
     @property
-    def current(self):
+    def currInd(self):
         areActive = [experiment.isActive for experiment in self.experiments]
         if not True in areActive:
             return False
@@ -122,7 +122,7 @@ class PanelWidget(QWidget):
 
     def updateTable(self):
 
-        current = self.sequenceTable.verticalScrollBar().value()
+        scrollvalue = self.sequenceTable.verticalScrollBar().value()
 
         self.sequenceTable.hide()
         self.sequenceTable.close()
@@ -132,7 +132,7 @@ class PanelWidget(QWidget):
         self.sequenceTable = Table(self)
         self.mainLayout.addWidget(self.sequenceTable, 1, 0, 35, 10)
 
-        self.sequenceTable.verticalScrollBar().setCurrent(current=current)
+        self.sequenceTable.verticalScrollBar().setScrollValue(value=scrollvalue)
 
     def sendCmdLine(self):
 

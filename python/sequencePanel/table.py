@@ -53,7 +53,7 @@ class CenteredItem(QTableWidgetItem):
         self.setTextAlignment(align)
 
         if lock:
-            self.setFlags(Qt.ItemIsEditable)
+            self.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
         back, col = CenteredItem.color[experiment.status]
 
@@ -67,6 +67,7 @@ class CenteredItem(QTableWidgetItem):
         else:
             self.setText(str(getattr(self.experiment, self.attr)))
 
+
 class CmdStrItem(CenteredItem):
     def __init__(self, experiment):
         CenteredItem.__init__(self, experiment=experiment, attr='cmdStr', typeFunc=str)
@@ -74,7 +75,8 @@ class CmdStrItem(CenteredItem):
     def valueChanged(self):
         val = str(self.text())
 
-        if self.experiment.cmdDescriptor and not self.experiment.cmdDescriptor in val:
+        if self.experiment.status != 'init' or (
+                self.experiment.cmdDescriptor and not self.experiment.cmdDescriptor in val):
             self.setText(self.experiment.cmdStr)
         else:
             self.experiment.cmdStr = val
@@ -84,19 +86,19 @@ class VScrollBar(QScrollBar):
     def __init__(self, tablewidget):
         self.panelwidget = tablewidget.panelwidget
         QScrollBar.__init__(self, tablewidget)
-        self.current = False
+        self.scrollValue = False
 
-    def setCurrent(self, current):
-        self.current = current
+    def setScrollValue(self, value):
+        self.scrollValue = value
 
     def paintEvent(self, event, a=0.058394160, b=0.4671533):
-        if self.current:
-            value = min(self.current, self.maximum())
+        if self.scrollValue:
+            value = min(self.scrollValue, self.maximum())
             self.setValue(value)
-            self.current = False
+            self.scrollValue = False
 
-        if self.panelwidget.current and self.panelwidget.mouseMove.userInactive:
-            currInd = self.panelwidget.current - 1
+        if self.panelwidget.currInd and self.panelwidget.mouseMove.userInactive:
+            currInd = self.panelwidget.currInd - 1
             topHeight = sum([exp.nbRows for exp in self.panelwidget.experiments[:currInd]])
             barSize = a * self.parent().height() + b
             center = topHeight + self.panelwidget.experiments[currInd].height
@@ -117,6 +119,7 @@ class Table(QTableWidget):
         nbRows = sum([experiment.nbRows for experiment in self.experiments])
 
         QTableWidget.__init__(self, nbRows, len(colnames))
+        self.setMouseTracking(True)
 
         self.setHorizontalHeaderLabels(colnames)
 
@@ -240,3 +243,7 @@ class Table(QTableWidget):
     def keyReleaseEvent(self, QKeyEvent):
         if QKeyEvent.key() == Qt.Key_Control:
             self.controlKey = False
+
+    def mouseMoveEvent(self, event):
+        QTableWidget.mouseMoveEvent(self, event)
+        self.panelwidget.mouseMove.checkPosition(x=event.x() + 10, y=event.y() + 54)

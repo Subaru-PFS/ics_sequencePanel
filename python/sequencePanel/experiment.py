@@ -199,14 +199,14 @@ class ExperimentRow(object):
     def terminate(self, code, returnStr):
         self.setFinished() if code == ':' else self.setFailed()
         self.returnStr = returnStr
-        self.showSubcommands(bool=False)
+        #self.showSubcommands(bool=False)
 
         self.panelwidget.sequencer.nextPlease()
 
     def setExperiment(self, experimentId, exptype, name, comments, cmdList):
 
         self.id = int(experimentId)
-        self.type = exptype.capitalize()
+        self.type = exptype
         self.name = name
         self.comments = comments
         self.subcommands = [SubCommand(id=i, cmdStr=cmdStr) for i, cmdStr in enumerate(cmdList.split(';'))]
