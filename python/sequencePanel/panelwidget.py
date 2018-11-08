@@ -164,6 +164,7 @@ class PanelWidget(QWidget):
     def createMenu(self):
         menubar = QMenuBar(self)
         fileMenu = menubar.addMenu('File')
+        addMenu = menubar.addMenu('Add')
         editMenu = menubar.addMenu('Edit')
 
         loadSequence = QAction('Open', self)
@@ -174,7 +175,7 @@ class PanelWidget(QWidget):
         saveSequence.triggered.connect(self.saveFile)
         saveSequence.setShortcut('Ctrl+S')
 
-        addSequence = QAction('Add Sequence', self)
+        addSequence = QAction('New Sequence', self)
         addSequence.triggered.connect(self.addSequence)
 
         selectAll = QAction('Select All', self)
@@ -187,7 +188,8 @@ class PanelWidget(QWidget):
         fileMenu.addAction(loadSequence)
         fileMenu.addAction(saveSequence)
 
-        editMenu.addAction(addSequence)
+        addMenu.addAction(addSequence)
+
         editMenu.addAction(selectAll)
         editMenu.addAction(clearDone)
 
