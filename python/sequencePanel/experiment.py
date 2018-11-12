@@ -198,21 +198,22 @@ class ExperimentRow(object):
             self.updateSubCommand(*reply.keywords['subCommand'].values)
 
     def terminate(self, code, returnStr):
-        self.setFinished() if code == ':' else self.setFailed()
         self.returnStr = returnStr
+        self.setFinished() if code == ':' else self.setFailed()
         #self.showSubcommands(bool=False)
 
         self.panelwidget.sequencer.nextPlease()
 
-    def setExperiment(self, experimentId, exptype, name, comments, cmdList):
+    def setExperiment(self, dbname, experimentId, exptype, name, comments, cmdList):
 
+        self.dbname = dbname
         self.id = int(experimentId)
         self.type = exptype
         self.name = name
         self.comments = comments
         self.subcommands = [SubCommand(id=i, cmdStr=cmdStr) for i, cmdStr in enumerate(cmdList.split(';'))]
         self.buttonEye.setEnabled(True)
-        self.showSubcommands(bool=True)
+        #self.showSubcommands(bool=True)
 
         self.panelwidget.updateTable()
 

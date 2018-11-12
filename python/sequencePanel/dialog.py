@@ -85,12 +85,6 @@ class CalibLayout(ExperimentLayout):
         self.cmdDescriptor = 'spsait calib '
         self.cmdStr.setText(self.cmdDescriptor + 'nbias=1 ndarks=1 exptime=2.0 cam=r1')
 
-class SacAlignLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='SacAlign')
-        self.cmdDescriptor = 'spsait sac align '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 focus=5.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
-
 
 class SlitAlignLayout(ExperimentLayout):
     def __init__(self):
@@ -112,7 +106,7 @@ class DitheredFlatsLayout(ExperimentLayout):
         ExperimentLayout.__init__(self, type='DitheredFlats')
         self.cmdDescriptor = 'spsait dither flat '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 shift=0.3 nbPosition=10 pixels duplicate=2 switchOff cam=r1')
+            self.cmdDescriptor + 'exptime=2.0 pixels=0.3 nbPosition=10 duplicate=2 switchOff cam=r1')
 
 
 class DitheredPsfLayout(ExperimentLayout):
@@ -120,7 +114,7 @@ class DitheredPsfLayout(ExperimentLayout):
         ExperimentLayout.__init__(self, type='DitheredPsf')
         self.cmdDescriptor = 'spsait dither psf '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 shift=0.5 pixels duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
+            self.cmdDescriptor + 'exptime=2.0 pixels=0.5 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
 
 class DefocusedPsfLayout(ExperimentLayout):
     def __init__(self):
@@ -136,6 +130,24 @@ class ImageStabilityLayout(ExperimentLayout):
         self.cmdStr.setText(
             self.cmdDescriptor + 'exptime=2.0 nbPosition=10 delay=60 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
 
+class SacAlignLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SacAlign')
+        self.cmdDescriptor = 'spsait sac align '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 focus=5.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+
+class SacExposeLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SacExpose')
+        self.cmdDescriptor = 'spsait sac expose '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2')
+
+class SacBackgroundLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SacBackground')
+        self.cmdDescriptor = 'spsait sac background '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2')
+
 class Dialog(QDialog):
     def __init__(self, panelwidget):
         QDialog.__init__(self, panelwidget)
@@ -145,13 +157,16 @@ class Dialog(QDialog):
                                  Flats=FlatLayout,
                                  Biases=BiasesLayout,
                                  Darks=DarksLayout,
-                                 SacAlign=SacAlignLayout,
                                  SlitAlign=SlitAlignLayout,
                                  DetAlign=DetAlignLayout,
                                  DitheredFlats=DitheredFlatsLayout,
                                  DitheredPsf=DitheredPsfLayout,
                                  DefocusedPsf=DefocusedPsfLayout,
                                  ImageStability=ImageStabilityLayout,
+                                 SacAlign=SacAlignLayout,
+                                 SacExpose=SacExposeLayout,
+                                 SacBackground=SacBackgroundLayout,
+
                                  )
 
         vbox = QVBoxLayout()

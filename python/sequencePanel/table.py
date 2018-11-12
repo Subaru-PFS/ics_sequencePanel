@@ -28,11 +28,10 @@ class AnomaliesItem(QTableWidgetItem):
         setattr(self.experiment, "anomalies", str(anomalies))
 
         try:
-            QTimer.singleShot(50,
-                              partial(self.experiment.panelwidget.sendCommand,
-                                      'spsait logbook experimentId=%i anomalies="%s"' % (self.experiment.id,
-                                                                                         anomalies.replace('"', "")),
-                                      5))
+            cmdStr = 'spsait logbook dbname=%s experimentId=%i anomalies="%s"' % (self.experiment.dbname,
+                                                                                  self.experiment.id,
+                                                                                  anomalies.replace('"', ""))
+            QTimer.singleShot(50, partial(self.experiment.panelwidget.sendCommand, cmdStr, 5))
 
         except Exception as e:
             print(e)
