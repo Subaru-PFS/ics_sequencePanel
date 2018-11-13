@@ -119,24 +119,28 @@ class ExperimentRow(object):
         return height
 
     @property
-    def visitStart(self):
-        visits = [subcommand.visitStart for subcommand in self.subcommands if subcommand.visitStart != -1]
-        if not visits:
-            return -1
+    def visits(self):
+        visits = []
+        for subcommand in self.subcommands:
+            visits += subcommand.visits
 
-        return min(visits)
+        return visits
+
+    @property
+    def visitStart(self):
+        if not self.visits:
+            return -1
+        return min(self.visits)
 
     @property
     def visitEnd(self):
-        visits = [subcommand.visitEnd for subcommand in self.subcommands if subcommand.visitEnd != -1]
-        if not visits:
+        if not self.visits:
             return -1
-
-        return max(visits)
+        return max(self.visits)
 
     @property
     def registered(self):
-        return not self.id == -1
+        return self.status in ['finished', 'failed'] and self.visits
 
     def colorCheckbox(self):
         self.valid.setStyleSheet("QCheckBox {background-color:%s};" % ExperimentRow.color[self.status][0])
@@ -200,7 +204,7 @@ class ExperimentRow(object):
     def terminate(self, code, returnStr):
         self.returnStr = returnStr
         self.setFinished() if code == ':' else self.setFailed()
-        #self.showSubcommands(bool=False)
+        # self.showSubcommands(bool=False)
 
         self.panelwidget.sequencer.nextPlease()
 
@@ -213,7 +217,7 @@ class ExperimentRow(object):
         self.comments = comments
         self.subcommands = [SubCommand(id=i, cmdStr=cmdStr) for i, cmdStr in enumerate(cmdList.split(';'))]
         self.buttonEye.setEnabled(True)
-        #self.showSubcommands(bool=True)
+        # self.showSubcommands(bool=True)
 
         self.panelwidget.updateTable()
 

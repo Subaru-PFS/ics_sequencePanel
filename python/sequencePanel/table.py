@@ -14,7 +14,7 @@ class AnomaliesItem(QTableWidgetItem):
         QTableWidgetItem.__init__(self, experiment.anomalies)
 
         self.setTextAlignment(align)
-        if experiment.status in ["init", "valid", "active"] or not experiment.registered:
+        if not experiment.registered:
             self.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
         back, col = AnomaliesItem.color[experiment.status]
@@ -35,8 +35,6 @@ class AnomaliesItem(QTableWidgetItem):
 
         except Exception as e:
             print(e)
-
-        self.setText(anomalies)
 
 
 class CenteredItem(QTableWidgetItem):
@@ -81,6 +79,35 @@ class CmdStrItem(CenteredItem):
             self.experiment.cmdStr = val
 
 
+class EditableField(CenteredItem):
+    def __init__(self, experiment, attr, typeFunc):
+        CenteredItem.__init__(self, experiment=experiment, attr=attr, typeFunc=typeFunc)
+
+    def valueChanged(self):
+        if self.experiment.status == 'init':
+            val = self.text()
+            setattr(self.experiment, self.attr, self.typeFunc(val))
+
+        elif self.experiment.registered:
+
+            val = self.text()
+            setattr(self.experiment, self.attr, self.typeFunc(val))
+
+            try:
+                cmdStr = 'spsait logbook dbname=%s experimentId=%i %s="%s"' % (self.experiment.dbname,
+                                                                               self.experiment.id,
+                                                                               self.attr,
+                                                                               val.replace('"', ""))
+
+                QTimer.singleShot(50, partial(self.experiment.panelwidget.sendCommand, cmdStr, 5))
+
+            except Exception as e:
+                print(e)
+
+        else:
+            self.setText(str(getattr(self.experiment, self.attr)))
+
+
 class VScrollBar(QScrollBar):
     def __init__(self, tablewidget):
         self.panelwidget = tablewidget.panelwidget
@@ -108,12 +135,14 @@ class VScrollBar(QScrollBar):
 
 
 class Table(QTableWidget):
+    colwidth = {4: 40, 8: 400, 12: 160}
+
     def __init__(self, panelwidget):
         self.panelwidget = panelwidget
         self.controlKey = False
 
-        colnames = ['', '', '', ' Id ', '  Valid  ', '  Type  ', '  Name  ', '  Comments  ', ' CmdStr ',
-                    '  VisitStart  ', '  VisitEnd  ', '  Anomalies  ', '  CmdError  ']
+        colnames = ['', '', '', ' Id', 'Valid', 'Type', 'Name', 'Comments', 'CmdStr',
+                    'VisitStart', 'VisitEnd', 'Anomalies', 'CmdError']
 
         nbRows = sum([experiment.nbRows for experiment in self.experiments])
 
@@ -138,8 +167,8 @@ class Table(QTableWidget):
             self.setItem(rowNumber, 3, CenteredItem(experiment, 'id', int, lock=True))
             self.setCellWidget(rowNumber, 4, experiment.valid)
             self.setItem(rowNumber, 5, CenteredItem(experiment, 'type', str, lock=True))
-            self.setItem(rowNumber, 6, CenteredItem(experiment, 'name', str))
-            self.setItem(rowNumber, 7, CenteredItem(experiment, 'comments', str))
+            self.setItem(rowNumber, 6, EditableField(experiment, 'name', str))
+            self.setItem(rowNumber, 7, EditableField(experiment, 'comments', str))
 
             nb = 2
             if experiment.showSub and experiment.subcommands:
@@ -179,9 +208,9 @@ class Table(QTableWidget):
             rowNumber += nb
 
             for j in range(len(colnames)):
-                if j == 4:
-                    self.setColumnWidth(j, 40)
-                else:
+                try:
+                    self.setColumnWidth(j, Table.colwidth[j])
+                except KeyError:
                     self.resizeColumnToContents(j)
 
         self.cellChanged.connect(self.userCellChange)
