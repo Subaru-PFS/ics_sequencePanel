@@ -198,15 +198,20 @@ class Dialog(QDialog):
 
     def showRelevantWidgets(self):
         try:
+            name = self.seqLayout.name.text()
+            comments = self.seqLayout.comments.text()
             self.seqLayout.clearLayout()
             self.grid.removeItem(self.seqLayout)
 
         except Exception as e:
-            pass
+            name = ''
+            comments = ''
 
         obj = self.availableSeq[self.comboType.currentText()]
         self.seqLayout = obj()
         self.grid.addLayout(self.seqLayout, 2, 0, self.seqLayout.rowCount(), self.seqLayout.columnCount())
+        self.seqLayout.name.setText(name)
+        self.seqLayout.comments.setText(comments)
 
     def addSequence(self):
         type = self.seqLayout.type.text()
