@@ -57,40 +57,43 @@ class ArcLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='Arcs')
         self.cmdDescriptor = 'spsait expose arc '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2 switchOn=hgar,neon switchOff=hgar,neon attenuator=120 cam=r1')
+        self.cmdStr.setText(
+            self.cmdDescriptor + 'exptime=15.0 duplicate=5 switchOn=hgar switchOff=hgar attenuator=120 cam=r1')
 
 
 class FlatLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='Flats')
         self.cmdDescriptor = 'spsait expose flat '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2 switchOff attenuator=120 cam=r1')
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=15.0 duplicate=2 switchOff attenuator=240 cam=r1')
 
 
 class BiasesLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='Biases')
         self.cmdDescriptor = 'spsait bias '
-        self.cmdStr.setText(self.cmdDescriptor + 'duplicate=3 cam=r1')
+        self.cmdStr.setText(self.cmdDescriptor + 'duplicate=15 cam=r1')
+
 
 class DarksLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='Darks')
         self.cmdDescriptor = 'spsait dark '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=3 cam=r1')
-
-class CalibLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='Calib')
-        self.cmdDescriptor = 'spsait calib '
-        self.cmdStr.setText(self.cmdDescriptor + 'nbias=1 ndarks=1 exptime=2.0 cam=r1')
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=60.0 duplicate=5 cam=r1')
 
 
 class SlitAlignLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SlitAlign')
+        self.cmdDescriptor = 'spsait slit align '
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 position=-2,2,10 duplicate=2')
+
+
+class SlitTFLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='SlitTF')
         self.cmdDescriptor = 'spsait slit throughfocus '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=15.0 position=-2,2,10 duplicate=2 cam=r1')
 
 
 class DetAlignLayout(ExperimentLayout):
@@ -98,7 +101,7 @@ class DetAlignLayout(ExperimentLayout):
         ExperimentLayout.__init__(self, type='DetAlign')
         self.cmdDescriptor = 'spsait detector throughfocus '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 cam=r1 startPosition=0,0,40 upBound=290 nbPosition=10 duplicate=2 switchOn=hgar switchOff=hgar')
+            self.cmdDescriptor + 'exptime=2.0 cam=r1 position=10,300,20 tilt=0,0,40 duplicate=2 switchOn=hgar switchOff=hgar')
 
 
 class DitheredFlatsLayout(ExperimentLayout):
@@ -106,7 +109,7 @@ class DitheredFlatsLayout(ExperimentLayout):
         ExperimentLayout.__init__(self, type='DitheredFlats')
         self.cmdDescriptor = 'spsait dither flat '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 pixels=0.3 nbPosition=10 duplicate=2 switchOff cam=r1')
+            self.cmdDescriptor + 'exptime=15.0 pixels=0.3 nbPosition=20 duplicate=3 switchOff cam=r1')
 
 
 class DitheredPsfLayout(ExperimentLayout):
@@ -114,27 +117,31 @@ class DitheredPsfLayout(ExperimentLayout):
         ExperimentLayout.__init__(self, type='DitheredPsf')
         self.cmdDescriptor = 'spsait dither psf '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 pixels=0.5 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
+            self.cmdDescriptor + 'exptime=15.0 pixels=0.5 duplicate=2 switchOn=hgar cam=r1')
+
 
 class DefocusedPsfLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='DefocusedPsf')
         self.cmdDescriptor = 'spsait defocus '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 nbPosition=10 switchOn=hgar switchOff=hgar duplicate=2 cam=r1')
+            self.cmdDescriptor + 'exptime=15.0 attenuator=200 position=-5,5,20 switchOn=hgar switchOff=hgar duplicate=2 cam=r1')
+
 
 class ImageStabilityLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='ImageStability')
         self.cmdDescriptor = 'spsait imstab '
         self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 nbPosition=10 delay=60 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
+            self.cmdDescriptor + 'exptime=2.0 duration=24 delay=0.5 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
+
 
 class SacAlignLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SacAlign')
         self.cmdDescriptor = 'spsait sac align '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 focus=5.0 lowBound=-2 upBound=2 nbPosition=4 duplicate=2')
+        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 position=-300,500,10 focus=5.0  duplicate=2')
+
 
 class SacExposeLayout(ExperimentLayout):
     def __init__(self):
@@ -142,11 +149,13 @@ class SacExposeLayout(ExperimentLayout):
         self.cmdDescriptor = 'spsait sac expose '
         self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2')
 
+
 class SacBackgroundLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SacBackground')
         self.cmdDescriptor = 'spsait sac background '
         self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2')
+
 
 class Dialog(QDialog):
     def __init__(self, panelwidget):
@@ -158,6 +167,7 @@ class Dialog(QDialog):
                                  Biases=BiasesLayout,
                                  Darks=DarksLayout,
                                  SlitAlign=SlitAlignLayout,
+                                 SlitTF=SlitTFLayout,
                                  DetAlign=DetAlignLayout,
                                  DitheredFlats=DitheredFlatsLayout,
                                  DitheredPsf=DitheredPsfLayout,

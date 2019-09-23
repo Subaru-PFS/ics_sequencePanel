@@ -9,51 +9,50 @@ from sequencePanel.widgets import IconButton, EyeButton
 
 
 class SubCommand(object):
-    def __init__(self, id, cmdStr):
-        self.id = id
+    def __init__(self, subId, cmdStr, didFail, returnStr):
+        self.id = subId
         self.cmdStr = cmdStr
-        self.visits = []
-
         self.anomalies = ''
-        self.returnStr = ''
-        self.status = 'valid'
-        if id == 0:
-            self.setActive()
+        self.returnStr = returnStr
 
-    @property
-    def isFinished(self):
-        return self.status == 'finished'
+        self.visit = self.setVisit(returnStr)
+        self.setStatus(int(didFail))
 
     @property
     def isActive(self):
         return self.status == 'active'
 
     @property
-    def visitStart(self):
-        if not self.visits:
-            return -1
+    def isValid(self):
+        return self.status == 'valid'
 
-        return min(self.visits)
+    @property
+    def visitStart(self):
+        return self.visit
 
     @property
     def visitEnd(self):
-        if not self.visits:
-            return -1
-
-        return max(self.visits)
-
-    def setFinished(self):
-        self.status = 'finished'
-
-    def setFailed(self):
-        self.status = 'failed'
+        return self.visit
 
     def setActive(self):
         self.status = 'active'
 
-    def addVisits(self, newVisits):
-        newVisits = [int(visit) for visit in newVisits if visit]
-        self.visits.extend(newVisits)
+    def setStatus(self, didFail):
+        if didFail == -1:
+            self.status = 'valid'
+        elif didFail == 0:
+            self.status = 'finished'
+        elif didFail == 1:
+            self.status = 'failed'
+
+    def setVisit(self, returnStr):
+        try:
+            visit = int(returnStr.replace("'", "").split('visit=')[1])
+            self.returnStr = ''
+        except IndexError:
+            visit = -1
+
+        return visit
 
 
 class ExperimentRow(object):
@@ -70,7 +69,7 @@ class ExperimentRow(object):
         self.cmdDescriptor = cmdDescriptor
         self.cmdStr = cmdStr
         self.anomalies = ''
-        self.subcommands = []
+        self.cmds = dict()
         self.returnStr = ''
 
         self.valid = QCheckBox()
@@ -93,6 +92,10 @@ class ExperimentRow(object):
     def kwargs(self):
         return dict(type=self.type, name=self.name, comments=self.comments, cmdDescriptor=self.cmdDescriptor,
                     cmdStr=self.cmdStr)
+
+    @property
+    def subcommands(self):
+        return [self.cmds[k] for k in sorted(self.cmds.keys())]
 
     @property
     def isValid(self):
@@ -120,11 +123,7 @@ class ExperimentRow(object):
 
     @property
     def visits(self):
-        visits = []
-        for subcommand in self.subcommands:
-            visits += subcommand.visits
-
-        return visits
+        return [subcommand.visit for subcommand in self.subcommands if subcommand.visit != -1]
 
     @property
     def visitStart(self):
@@ -168,7 +167,6 @@ class ExperimentRow(object):
 
     def setFailed(self):
         self.valid.setEnabled(False)
-        self.cleanupSubCommand()
         self.setStatus(status='failed')
 
     def setValid(self, state):
@@ -187,16 +185,15 @@ class ExperimentRow(object):
         code = resp.lastCode
 
         if code in [':', 'F']:
-            self.terminate(code=code, returnStr=qstr(returnStr))
+            self.terminate(code=code, returnStr=returnStr)
         else:
             self.updateInfo(reply=reply)
 
         self.panelwidget.printResponse(resp=resp)
 
     def updateInfo(self, reply):
-
-        if 'newExperiment' in reply.keywords:
-            self.setExperiment(*reply.keywords['newExperiment'].values)
+        if 'experiment' in reply.keywords:
+            self.setExperiment(*reply.keywords['experiment'].values)
 
         if 'subCommand' in reply.keywords:
             self.updateSubCommand(*reply.keywords['subCommand'].values)
@@ -208,37 +205,32 @@ class ExperimentRow(object):
 
         self.panelwidget.sequencer.nextPlease()
 
-    def setExperiment(self, dbname, experimentId, exptype, name, comments, cmdList):
+    def setExperiment(self, dbname, experimentId, exptype, cmdStr, name, comments):
 
         self.dbname = dbname
         self.id = int(experimentId)
         self.type = exptype
         self.name = name
         self.comments = comments
-        self.subcommands = [SubCommand(id=i, cmdStr=cmdStr) for i, cmdStr in enumerate(cmdList.split(';'))]
         self.buttonEye.setEnabled(True)
         # self.showSubcommands(bool=True)
 
         self.panelwidget.updateTable()
 
-    def updateSubCommand(self, id, didFail, returnStr=''):
-        id = int(id)
-        subcommand = self.subcommands[id]
+    def updateSubCommand(self, expId, subId, *args):
+        subId = int(subId)
+        self.cmds[subId] = SubCommand(subId, *args)
 
-        subcommand.setFailed() if int(didFail) else subcommand.setFinished()
-        subcommand.addVisits(newVisits=returnStr.split(';'))
+        actives = [subcommand for subcommand in self.subcommands if subcommand.isActive]
+        valids = [subcommand for subcommand in self.subcommands if subcommand.isValid]
 
-        try:
-            self.subcommands[id + 1].setActive()
-        except IndexError:
-            pass
+        if actives:
+            return
+
+        if valids:
+            valids[0].setActive()
 
         self.panelwidget.updateTable()
-
-    def cleanupSubCommand(self):
-        for subcommand in self.subcommands:
-            if not subcommand.isFinished:
-                subcommand.setFailed()
 
     def moveUp(self):
         experiments = self.panelwidget.experiments

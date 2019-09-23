@@ -45,7 +45,6 @@ class CenteredItem(QTableWidgetItem):
         self.experiment = experiment
         self.attr = attr
         self.typeFunc = typeFunc
-
         QTableWidgetItem.__init__(self, str(getattr(experiment, attr)))
         self.setTextAlignment(align)
 
@@ -121,6 +120,7 @@ class VScrollBar(QScrollBar):
         if self.scrollValue:
             value = min(self.scrollValue, self.maximum())
             self.setValue(value)
+
             self.scrollValue = False
 
         if self.panelwidget.currInd and self.panelwidget.mouseMove.userInactive:
@@ -142,7 +142,7 @@ class Table(QTableWidget):
         self.controlKey = False
 
         colnames = ['', '', '', ' Id', 'Valid', 'Type', 'Name', 'Comments', 'CmdStr',
-                    'VisitStart', 'VisitEnd', 'Anomalies', 'CmdError']
+                    'VisitStart', 'VisitEnd', 'Anomalies', 'ReturnStr']
 
         nbRows = sum([experiment.nbRows for experiment in self.experiments])
 
