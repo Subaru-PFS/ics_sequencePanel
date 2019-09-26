@@ -146,9 +146,9 @@ class PreviousExperimentLayout(ExperimentLayout):
 
         self.experimentIdLabel = Label('experimentId')
         self.experimentId = SpinBox()
-        self.experimentId.setMinimum(1)
+        self.experimentId.setRange(1, Logbook.lastExperimentId(self.database.text()))
         self.experimentId.valueChanged.connect(self.loadPreviousCmdStr)
-        self.experimentId.setValue(Logbook.lastExperimentId(self.database.text()))
+        self.experimentId.setValue(self.experimentId.maximum())
 
         for row in [2, 3, 4]:
             self.removeItem(self.itemAtPosition(row, 0))
@@ -211,6 +211,7 @@ class Dialog(QDialog):
         QDialog.__init__(self, panelwidget)
         self.panelwidget = panelwidget
         self.availableSeq = dict(Command=CommandLayout,
+                                 Previous=PreviousExperimentLayout,
                                  Arcs=ArcLayout,
                                  Flats=FlatLayout,
                                  Biases=BiasesLayout,
@@ -222,7 +223,6 @@ class Dialog(QDialog):
                                  DitheredPsf=DitheredPsfLayout,
                                  DefocusedPsf=DefocusedPsfLayout,
                                  ImageStability=ImageStabilityLayout,
-                                 Previous=PreviousExperimentLayout,
                                  SacAlign=SacAlignLayout,
                                  SacExpose=SacExposeLayout,
                                  SacBackground=SacBackgroundLayout,
