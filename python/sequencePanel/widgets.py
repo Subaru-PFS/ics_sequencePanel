@@ -4,7 +4,7 @@ import os
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QTextCursor, QIcon, QPixmap
-from PyQt5.QtWidgets import QPlainTextEdit, QLabel, QComboBox, QLineEdit, QProgressBar, QPushButton
+from PyQt5.QtWidgets import QPlainTextEdit, QLabel, QComboBox, QLineEdit, QProgressBar, QPushButton, QSpinBox
 import sequencePanel
 
 imgpath = os.path.abspath(os.path.join(os.path.dirname(sequencePanel.__file__), '../..', 'img'))
@@ -36,6 +36,11 @@ class LineEdit(QLineEdit):
     def __init__(self, *args, **kwargs):
         QLineEdit.__init__(self, *args, **kwargs)
         self.setStyleSheet("QLineEdit { font: 8pt;}")
+
+class SpinBox(QSpinBox):
+    def __init__(self, *args, **kwargs):
+        QSpinBox.__init__(self, *args, **kwargs)
+        self.setStyleSheet("QSpinBox { font: 8pt;}")
 
 
 class CLabel(QLabel):

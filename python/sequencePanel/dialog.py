@@ -2,7 +2,8 @@ __author__ = 'alefur'
 
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox
 from sequencePanel.experiment import ExperimentRow
-from sequencePanel.widgets import Label, LineEdit, ComboBox
+from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
+from spsaitActor.utils.logbook import Logbook
 
 
 class ExperimentLayout(QGridLayout):
@@ -136,6 +137,54 @@ class ImageStabilityLayout(ExperimentLayout):
             self.cmdDescriptor + 'exptime=2.0 duration=24 delay=0.5 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
 
 
+class PreviousExperimentLayout(ExperimentLayout):
+    def __init__(self):
+        ExperimentLayout.__init__(self, type='previous')
+
+        self.databaseLabel = Label('Database')
+        self.database = LineEdit('experimentLog')
+
+        self.experimentIdLabel = Label('experimentId')
+        self.experimentId = SpinBox()
+        self.experimentId.setMinimum(1)
+        self.experimentId.valueChanged.connect(self.loadPreviousCmdStr)
+        self.experimentId.setValue(Logbook.lastExperimentId(self.database.text()))
+
+        for row in [2, 3, 4]:
+            self.removeItem(self.itemAtPosition(row, 0))
+            self.removeItem(self.itemAtPosition(row, 1))
+
+        self.addWidget(self.databaseLabel, 2, 0)
+        self.addWidget(self.database, 2, 1)
+
+        self.addWidget(self.experimentIdLabel, 3, 0)
+        self.addWidget(self.experimentId, 3, 1)
+
+        self.addWidget(self.nameLabel, 4, 0)
+        self.addWidget(self.name, 4, 1)
+
+        self.addWidget(self.commentsLabel, 5, 0)
+        self.addWidget(self.comments, 5, 1)
+
+        self.addWidget(self.cmdStrLabel, 6, 0)
+        self.addWidget(self.cmdStr, 6, 1)
+
+    def loadPreviousCmdStr(self, experimentId):
+        try:
+            name, comments, cmdStr = Logbook.buildCmdStr(self.database.text(), experimentId)
+            self.name.setEnabled(True)
+            self.comments.setEnabled(True)
+            self.cmdStr.setEnabled(True)
+            self.name.setText(name)
+            self.comments.setText(comments)
+            self.cmdStr.setText(cmdStr)
+
+        except TypeError:
+            self.name.setDisabled(True)
+            self.comments.setDisabled(True)
+            self.cmdStr.setDisabled(True)
+
+
 class SacAlignLayout(ExperimentLayout):
     def __init__(self):
         ExperimentLayout.__init__(self, type='SacAlign')
@@ -173,6 +222,7 @@ class Dialog(QDialog):
                                  DitheredPsf=DitheredPsfLayout,
                                  DefocusedPsf=DefocusedPsfLayout,
                                  ImageStability=ImageStabilityLayout,
+                                 Previous=PreviousExperimentLayout,
                                  SacAlign=SacAlignLayout,
                                  SacExpose=SacExposeLayout,
                                  SacBackground=SacBackgroundLayout,
@@ -212,6 +262,7 @@ class Dialog(QDialog):
             comments = self.seqLayout.comments.text()
             self.seqLayout.clearLayout()
             self.grid.removeItem(self.seqLayout)
+            self.adjustSize()
 
         except Exception as e:
             name = ''
@@ -220,6 +271,7 @@ class Dialog(QDialog):
         obj = self.availableSeq[self.comboType.currentText()]
         self.seqLayout = obj()
         self.grid.addLayout(self.seqLayout, 2, 0, self.seqLayout.rowCount(), self.seqLayout.columnCount())
+        self.adjustSize()
         self.seqLayout.name.setText(name)
         self.seqLayout.comments.setText(comments)
 

@@ -212,6 +212,7 @@ class ExperimentRow(object):
         self.type = exptype
         self.name = name
         self.comments = comments
+        self.cmdStr = cmdStr
         self.buttonEye.setEnabled(True)
         # self.showSubcommands(bool=True)
 
