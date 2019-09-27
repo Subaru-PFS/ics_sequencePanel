@@ -272,8 +272,12 @@ class Dialog(QDialog):
         self.seqLayout = obj()
         self.grid.addLayout(self.seqLayout, 2, 0, self.seqLayout.rowCount(), self.seqLayout.columnCount())
         self.adjustSize()
-        self.seqLayout.name.setText(name)
-        self.seqLayout.comments.setText(comments)
+
+        if name and not self.seqLayout.name.text():
+            self.seqLayout.name.setText(name)
+
+        if comments and not self.seqLayout.comments.text():
+            self.seqLayout.comments.setText(comments)
 
     def addSequence(self):
         type = self.seqLayout.type.text()
