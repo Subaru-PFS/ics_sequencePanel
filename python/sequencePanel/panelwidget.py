@@ -90,9 +90,12 @@ class PanelWidget(QWidget):
     def copyExperiment(self, experiments, filepath='temp.pickle'):
 
         copiedExp = [(type(experiment), experiment.kwargs) for experiment in experiments]
-        with open(filepath, 'wb') as thisFile:
-            pickler = pickle.Pickler(thisFile, protocol=2)
-            pickler.dump(copiedExp)
+        try:
+            with open(filepath, 'wb') as thisFile:
+                pickler = pickle.Pickler(thisFile, protocol=2)
+                pickler.dump(copiedExp)
+        except Exception as e:
+            self.mwindow.showError(str(e))
 
     def pasteExperiment(self, ind, filepath='temp.pickle'):
         try:
@@ -102,6 +105,8 @@ class PanelWidget(QWidget):
 
         except FileNotFoundError:
             return
+        except Exception as e:
+            self.mwindow.showError(str(e))
 
         newExp = []
 
@@ -201,8 +206,8 @@ class PanelWidget(QWidget):
         if filepath:
             try:
                 self.pasteExperiment(ind=0, filepath=filepath)
-            except:
-                self.mwindow.showError("Cannot load your file, it may be corrupted")
+            except Exception as e:
+                self.mwindow.showError(f"Cannot load your file, it may be corrupted : {e}")
 
     def saveFile(self):
         bpath = '/'.join(os.getcwd().split('/')[:3])
