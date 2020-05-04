@@ -4,7 +4,6 @@ from functools import partial
 
 import numpy as np
 from PyQt5.QtWidgets import QCheckBox
-from opscore.utility.qstr import qstr
 from sequencePanel.widgets import IconButton, EyeButton
 
 
@@ -192,6 +191,11 @@ class ExperimentRow(object):
         self.panelwidget.printResponse(resp=resp)
 
     def updateInfo(self, reply):
+        print(reply.keywords)
+
+        if 'sps_sequence' in reply.keywords:
+            self.setExperiment(*([''] + reply.keywords['sps_sequence'].values))
+
         if 'experiment' in reply.keywords:
             self.setExperiment(*reply.keywords['experiment'].values)
 
