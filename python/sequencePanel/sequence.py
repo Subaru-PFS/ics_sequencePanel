@@ -60,7 +60,7 @@ class CmdRow(object):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
              "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
 
-    def __init__(self, panelwidget, seqtype, name, comments, cmdStr):
+    def __init__(self, panelwidget, name, comments, cmdStr, seqtype=''):
         self.status = 'init'
         self.id = -1
         self.panelwidget = panelwidget
@@ -94,8 +94,8 @@ class CmdRow(object):
         return f'{self.cmdStr} {name} {comments}'.strip()
 
     @property
-    def kwargs(self):
-        return dict(type=self.seqtype, name=self.name, comments=self.comments, cmdStr=self.cmdStr)
+    def info(self):
+        return dict(name=self.name, comments=self.comments, cmdStr=self.cmdStr)
 
     @property
     def subcommands(self):
@@ -190,7 +190,7 @@ class CmdRow(object):
         else:
             self.updateInfo(reply=reply)
 
-        self.panelwidget.printResponse(resp=resp)
+        self.panelwidget.logArea.printResponse(resp=resp)
 
     def updateInfo(self, reply):
 

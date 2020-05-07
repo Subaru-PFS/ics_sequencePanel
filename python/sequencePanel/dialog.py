@@ -241,11 +241,11 @@ class Dialog(QDialog):
             self.seqLayout.comments.setText(prevComments)
 
     def addSequence(self):
-        type = self.seqLayout.seqtype
+        seqtype = self.seqLayout.seqtype
         name = str(self.seqLayout.name.text())
         comments = str(self.seqLayout.comments.text())
         cmdStr = str(self.seqLayout.cmdStr.text())
 
-        cmdRow = CmdRow(self.panelwidget, type, name, comments, cmdStr)
+        cmdRow = CmdRow(self.panelwidget, name, comments, cmdStr, seqtype=seqtype)
 
         self.panelwidget.add(cmdRow=cmdRow)

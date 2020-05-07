@@ -1,7 +1,7 @@
 __author__ = 'alefur'
 
 import os
-import pickle
+import yaml
 import time
 
 import numpy as np
@@ -10,6 +10,7 @@ from sequencePanel.dialog import Dialog
 from sequencePanel.scheduler import Scheduler
 from sequencePanel.table import Table
 from sequencePanel.widgets import CmdLogArea
+from sequencePanel.sequence import CmdRow
 
 
 class MouseMove(object):
@@ -87,44 +88,6 @@ class PanelWidget(QWidget):
         self.cmdRows.append(cmdRow)
         self.updateTable()
 
-    # def copyExperiment(self, experiments, filepath='temp.pickle'):
-    #
-    #     copiedExp = [(type(experiment), experiment.kwargs) for experiment in experiments]
-    #     try:
-    #         with open(filepath, 'wb') as thisFile:
-    #             pickler = pickle.Pickler(thisFile, protocol=2)
-    #             pickler.dump(copiedExp)
-    #     except Exception as e:
-    #         self.mwindow.showError(str(e))
-    #
-    # def pasteExperiment(self, ind, filepath='temp.pickle'):
-    #     try:
-    #         with open(filepath, 'rb') as thisFile:
-    #             unpickler = pickle.Unpickler(thisFile)
-    #             copiedExp = unpickler.load()
-    #
-    #     except FileNotFoundError:
-    #         return
-    #     except Exception as e:
-    #         self.mwindow.showError(str(e))
-    #
-    #     newExp = []
-    #
-    #     for t, kwargs in copiedExp:
-    #         newExp.append(t(self, **kwargs))
-    #
-    #     self.experiments[ind:ind] = newExp
-    #     self.updateTable()
-    #
-    # def removeExperiment(self, experiments):
-    #     for experiment in experiments:
-    #         if not experiment in self.experiments:
-    #             continue
-    #
-    #         self.experiments.remove(experiment)
-    #
-    #     self.updateTable()
-
     def updateTable(self):
 
         scrollvalue = self.sequenceTable.verticalScrollBar().value()
@@ -143,7 +106,8 @@ class PanelWidget(QWidget):
 
         self.sendCommand(fullCmd=self.commandLine.text())
 
-    def sendCommand(self, fullCmd, timeLim=300):
+    def sendCommand(self, fullCmd, timeLim=300, callFunc=None):
+        callFunc = self.logArea.printResponse if callFunc is None else callFunc
 
         import opscore.actor.keyvar as keyvar
 
@@ -156,7 +120,7 @@ class PanelWidget(QWidget):
         self.actor.cmdr.bgCall(**dict(actor=actor,
                                       cmdStr=cmdStr,
                                       timeLim=timeLim,
-                                      callFunc=self.logArea.printResponse,
+                                      callFunc=callFunc,
                                       callCodes=keyvar.AllCodes))
 
     def createMenu(self):
@@ -194,21 +158,39 @@ class PanelWidget(QWidget):
         return menubar
 
     def loadFile(self):
-        bpath = '/'.join(os.getcwd().split('/')[:3])
-        filepath, fmt = QFileDialog.getOpenFileName(self, 'Open file', bpath, "Text files (*.txt, *.cfg)")
-        if filepath:
-            try:
-                self.pasteExperiment(ind=0, filepath=filepath)
-            except Exception as e:
-                self.mwindow.showError(f"Cannot load your file, it may be corrupted : {e}")
+        filepath, fmt = QFileDialog.getOpenFileName(self, 'Open File', '/home/', "(*.yaml)")
+        if not filepath:
+            return
+
+        try:
+            with open(os.path.expandvars(filepath), 'r') as cfgFile:
+                cmdRows = yaml.load(cfgFile, Loader=yaml.FullLoader)
+
+        except PermissionError as e:
+            self.mwindow.showError(str(e))
+            return
+
+        for i, kwargs in cmdRows.items():
+            self.add(CmdRow(self, **kwargs))
 
     def saveFile(self):
-        bpath = '/'.join(os.getcwd().split('/')[:3])
-        fname, fmt = QFileDialog.getSaveFileName(self, 'Save file', bpath, "Text files (*.txt, *.cfg)")
 
-        if fname:
-            filepath = '%s.cfg' % fname if len(fname.split('.')) < 2 else fname
-            self.copyExperiment(experiments=self.experiments, filepath=filepath)
+        if not self.cmdRows:
+            self.mwindow.showError('Your script is empty...')
+            return
+
+        seq = dict([(i, cmdRow.info) for i, cmdRow in enumerate(self.cmdRows)])
+
+        try:
+
+            filepath, fmt = QFileDialog.getSaveFileName(self, 'Save File',
+                                                        f'/home/script.yaml', "(*.yaml)")
+            if filepath:
+                with open(os.path.expandvars(filepath), 'w') as savedFile:
+                    yaml.dump(seq, savedFile)
+
+        except PermissionError as e:
+            self.mwindow.showError(str(e))
 
     def selectAll(self):
         self.sequenceTable.selectAll()
