@@ -1,11 +1,12 @@
 __author__ = 'alefur'
-from datetime import datetime as dt
-import os
 
+import os
+from datetime import datetime as dt
+
+import sequencePanel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QTextCursor, QIcon, QPixmap
 from PyQt5.QtWidgets import QPlainTextEdit, QLabel, QComboBox, QLineEdit, QProgressBar, QPushButton, QSpinBox
-import sequencePanel
 
 imgpath = os.path.abspath(os.path.join(os.path.dirname(sequencePanel.__file__), '../..', 'img'))
 
@@ -36,6 +37,7 @@ class LineEdit(QLineEdit):
     def __init__(self, *args, **kwargs):
         QLineEdit.__init__(self, *args, **kwargs)
         self.setStyleSheet("QLineEdit { font: 8pt;}")
+
 
 class SpinBox(QSpinBox):
     def __init__(self, *args, **kwargs):
@@ -81,23 +83,50 @@ class CLabel(QLabel):
         QLabel.setText(self, txt)
 
 
-class LogArea(QPlainTextEdit):
+class CmdLogArea(QPlainTextEdit):
+    printLevels = {'D': 0, '>': 0,
+                   'I': 1, ':': 1,
+                   'W': 2,
+                   'F': 3, '!': 4}
+    colorCode = {'d': '#FFFFFF',
+                 '>': '#FFFFFF',
+                 'i': '#FFFFFF',
+                 ':': '#7FFF00',
+                 'w': '#ffab50',
+                 'f':'#FF0000',
+                 '!':'#FF0000',}
+
     def __init__(self):
         QPlainTextEdit.__init__(self)
-        self.logArea = QPlainTextEdit()
+        self.setMinimumSize(720, 180)
+        self.printLevel = CmdLogArea.printLevels['I']
         self.setMaximumBlockCount(10000)
         self.setReadOnly(True)
 
         self.setStyleSheet("background-color: black;color:white;")
         self.setFont(QFont("Monospace", 8))
 
-    def newLine(self, line):
-        self.insertPlainText("\n%s  %s" % (dt.now().strftime("%H:%M:%S.%f"), line))
+    def newLine(self, newLine, code=None):
+        code = 'i' if code is None else code
+        color = CmdLogArea.colorCode[code]
+        self.appendHtml('\n<font color="%s">%s  %s</font>' % (color, dt.now().strftime('%Y-%m-%d %H:%M:%S'), newLine))
+
         self.moveCursor(QTextCursor.End)
         self.ensureCursorVisible()
 
-    def trick(self, qlineedit):
-        self.newLine(qlineedit.text())
+    def formatResponse(self, actor, code, keywords):
+        color = CmdLogArea.colorCode[code]
+        return '<font color="%s">%s %s %s</font>' % (color, actor, code, keywords)
+
+    def printResponse(self, resp):
+        reply = resp.replyList[-1]
+        code = resp.lastCode
+
+        if CmdLogArea.printLevels[code] >= self.printLevel:
+            self.newLine(newLine='%s %s %s ' % (reply.header.actor,
+                                                reply.header.code.lower(),
+                                                reply.keywords.canonical(delimiter=';')),
+                         code=reply.header.code.lower())
 
 
 class ProgressBar(QProgressBar):

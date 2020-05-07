@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, 
 from sequencePanel.dialog import Dialog
 from sequencePanel.scheduler import Scheduler
 from sequencePanel.table import Table
-from sequencePanel.widgets import LogArea
+from sequencePanel.widgets import CmdLogArea
 
 
 class MouseMove(object):
@@ -54,7 +54,7 @@ class PanelWidget(QWidget):
         self.commandLine = QLineEdit()
         self.commandLine.returnPressed.connect(self.sendCmdLine)
 
-        self.logArea = LogArea()
+        self.logArea = CmdLogArea()
         self.logLayout.addWidget(self.logArea, 0, 0, 10, 1)
         self.logLayout.addWidget(self.commandLine, 10, 0, 1, 1)
 
@@ -143,28 +143,21 @@ class PanelWidget(QWidget):
 
         self.sendCommand(fullCmd=self.commandLine.text())
 
-    def sendCommand(self, fullCmd, timeLim=300, callFunc=None):
+    def sendCommand(self, fullCmd, timeLim=300):
 
-        callFunc = self.printResponse if callFunc is None else callFunc
         import opscore.actor.keyvar as keyvar
 
-        [actor, cmdStr] = fullCmd.split(' ', 1)
+        try:
+            [actor, cmdStr] = fullCmd.split(' ', 1)
+        except ValueError:
+            return
+
         self.logArea.newLine('cmdIn=%s %s' % (actor, cmdStr))
         self.actor.cmdr.bgCall(**dict(actor=actor,
                                       cmdStr=cmdStr,
                                       timeLim=timeLim,
-                                      callFunc=callFunc,
+                                      callFunc=self.logArea.printResponse,
                                       callCodes=keyvar.AllCodes))
-
-    def printResponse(self, resp):
-
-        reply = resp.replyList[-1]
-        code = resp.lastCode
-
-        if self.printLevels[code] >= self.printLevel:
-            self.logArea.newLine("%s %s %s" % (reply.header.actor,
-                                               reply.header.code.lower(),
-                                               reply.keywords.canonical(delimiter=';')))
 
     def createMenu(self):
         menubar = QMenuBar(self)
