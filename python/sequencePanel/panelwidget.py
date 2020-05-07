@@ -7,7 +7,7 @@ import time
 import numpy as np
 from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, QFileDialog
 from sequencePanel.dialog import Dialog
-from sequencePanel.sequencer import Sequencer
+from sequencePanel.scheduler import Scheduler
 from sequencePanel.table import Table
 from sequencePanel.widgets import LogArea
 
@@ -38,14 +38,14 @@ class PanelWidget(QWidget):
                             'W': 2,
                             'F': 3, '!': 4}
         self.printLevel = self.printLevels['I']
-        self.experiments = []
+        self.cmdRows = []
         self.mouseMove = MouseMove(0, 0)
 
         QWidget.__init__(self)
         self.mwindow = mwindow
 
         self.mainLayout = QGridLayout()
-        self.sequencer = Sequencer(self)
+        self.scheduler = Scheduler(self)
         self.logLayout = QGridLayout()
 
         self.menuBar = self.createMenu()
@@ -60,7 +60,7 @@ class PanelWidget(QWidget):
 
         self.mainLayout.addWidget(self.menuBar, 0, 0, 1, 10)
         self.mainLayout.addWidget(self.sequenceTable, 1, 0, 35, 10)
-        self.mainLayout.addLayout(self.sequencer, 36, 0, 4, 4)
+        self.mainLayout.addLayout(self.scheduler, 36, 0, 4, 4)
 
         self.mainLayout.addLayout(self.logLayout, 40, 0, 25, 10)
 
@@ -74,7 +74,7 @@ class PanelWidget(QWidget):
 
     @property
     def currInd(self):
-        areActive = [experiment.isActive for experiment in self.experiments]
+        areActive = [cmdRow.isActive for cmdRow in self.cmdRows]
         if not True in areActive:
             return False
         else:
@@ -83,47 +83,47 @@ class PanelWidget(QWidget):
     def addSequence(self):
         d = Dialog(self)
 
-    def addExperiment(self, experiment):
-        self.experiments.append(experiment)
+    def add(self, cmdRow):
+        self.cmdRows.append(cmdRow)
         self.updateTable()
 
-    def copyExperiment(self, experiments, filepath='temp.pickle'):
-
-        copiedExp = [(type(experiment), experiment.kwargs) for experiment in experiments]
-        try:
-            with open(filepath, 'wb') as thisFile:
-                pickler = pickle.Pickler(thisFile, protocol=2)
-                pickler.dump(copiedExp)
-        except Exception as e:
-            self.mwindow.showError(str(e))
-
-    def pasteExperiment(self, ind, filepath='temp.pickle'):
-        try:
-            with open(filepath, 'rb') as thisFile:
-                unpickler = pickle.Unpickler(thisFile)
-                copiedExp = unpickler.load()
-
-        except FileNotFoundError:
-            return
-        except Exception as e:
-            self.mwindow.showError(str(e))
-
-        newExp = []
-
-        for t, kwargs in copiedExp:
-            newExp.append(t(self, **kwargs))
-
-        self.experiments[ind:ind] = newExp
-        self.updateTable()
-
-    def removeExperiment(self, experiments):
-        for experiment in experiments:
-            if not experiment in self.experiments:
-                continue
-
-            self.experiments.remove(experiment)
-
-        self.updateTable()
+    # def copyExperiment(self, experiments, filepath='temp.pickle'):
+    #
+    #     copiedExp = [(type(experiment), experiment.kwargs) for experiment in experiments]
+    #     try:
+    #         with open(filepath, 'wb') as thisFile:
+    #             pickler = pickle.Pickler(thisFile, protocol=2)
+    #             pickler.dump(copiedExp)
+    #     except Exception as e:
+    #         self.mwindow.showError(str(e))
+    #
+    # def pasteExperiment(self, ind, filepath='temp.pickle'):
+    #     try:
+    #         with open(filepath, 'rb') as thisFile:
+    #             unpickler = pickle.Unpickler(thisFile)
+    #             copiedExp = unpickler.load()
+    #
+    #     except FileNotFoundError:
+    #         return
+    #     except Exception as e:
+    #         self.mwindow.showError(str(e))
+    #
+    #     newExp = []
+    #
+    #     for t, kwargs in copiedExp:
+    #         newExp.append(t(self, **kwargs))
+    #
+    #     self.experiments[ind:ind] = newExp
+    #     self.updateTable()
+    #
+    # def removeExperiment(self, experiments):
+    #     for experiment in experiments:
+    #         if not experiment in self.experiments:
+    #             continue
+    #
+    #         self.experiments.remove(experiment)
+    #
+    #     self.updateTable()
 
     def updateTable(self):
 
@@ -227,3 +227,8 @@ class PanelWidget(QWidget):
     def mouseMoveEvent(self, event):
         self.mouseMove.checkPosition(x=event.x(), y=event.y())
         QWidget.mouseMoveEvent(self, event)
+
+    def resizeEvent(self, event):
+        QWidget.resizeEvent(self, event)
+        self.sequenceTable.resizeEvent(event)
+

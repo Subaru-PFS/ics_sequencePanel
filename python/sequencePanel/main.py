@@ -56,10 +56,10 @@ def main():
 
     try:
         ex = SequencePanel(reactor,
-                             actor,
-                             geometry.width() * args.stretch,
-                             geometry.height() * args.stretch,
-                             args.name)
+                           actor,
+                           geometry.width() * args.stretch,
+                           geometry.height() * args.stretch,
+                           args.name)
     except:
         actor.disconnectActor()
         raise

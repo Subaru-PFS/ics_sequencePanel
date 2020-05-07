@@ -27,8 +27,8 @@ class DelayBar(QProgressBar):
         self.progressing.timeout.connect(self.waitInProgress)
 
     @property
-    def sequencer(self):
-        return self.panelwidget.sequencer
+    def scheduler(self):
+        return self.panelwidget.scheduler
 
     @property
     def delta(self):
@@ -50,17 +50,17 @@ class DelayBar(QProgressBar):
         self.hide()
 
     def waitInProgress(self):
-        if not self.sequencer.onGoing:
+        if not self.scheduler.onGoing:
             self.stop()
         else:
             if self.delta < self.delay:
                 self.setValue(self.delta)
             else:
                 self.stop()
-                self.sequencer.activateSequence()
+                self.scheduler.activateSequence()
 
 
-class Sequencer(QGridLayout):
+class Scheduler(QGridLayout):
     delayCmd = 2
     def __init__(self, panelwidget):
         self.panelwidget = panelwidget
@@ -98,14 +98,14 @@ class Sequencer(QGridLayout):
 
     @property
     def validated(self):
-        return [experiment for experiment in self.panelwidget.experiments if experiment.isValid]
+        return [cmdRow for cmdRow in self.panelwidget.cmdRows if cmdRow.isValid]
 
     def startSequence(self):
         self.startButton.setVisible(False)
         self.stopButton.setVisible(True)
 
         delay = self.delay.value() * 60
-        delay = Sequencer.delayCmd if not delay else delay
+        delay = Scheduler.delayCmd if not delay else delay
 
         self.startingSoon(delay=delay)
 
@@ -117,12 +117,12 @@ class Sequencer(QGridLayout):
             self.stopSequence()
 
     def activateSequence(self):
-        isActive = True in [experiment.isActive for experiment in self.validated]
+        isActive = True in [cmdRow.isActive for cmdRow in self.validated]
         self.status.setText('PROCESSING')
 
-        for experiment in self.validated:
+        for cmdRow in self.validated:
             if not isActive:
-                experiment.setActive()
+                cmdRow.setActive()
                 isActive = True
                 break
 
@@ -136,7 +136,7 @@ class Sequencer(QGridLayout):
 
     def nextPlease(self):
         if self.onGoing:
-            self.startingSoon(delay=Sequencer.delayCmd)
+            self.startingSoon(delay=Scheduler.delayCmd)
 
     def abortSequence(self):
         self.panelwidget.sendCommand(fullCmd='spsait abort', timeLim=5)

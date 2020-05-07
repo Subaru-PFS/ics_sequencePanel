@@ -1,41 +1,89 @@
 __author__ = 'alefur'
 
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox
-from sequencePanel.experiment import ExperimentRow
-from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
-from spsaitActor.utils.logbook import Logbook
+from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox, QGroupBox
+from sequencePanel.sequence import CmdRow
+from sequencePanel.widgets import Label, LineEdit, ComboBox
 
 
-class ExperimentLayout(QGridLayout):
-    def __init__(self,
-                 type='Experiment',
-                 commandParse=('spsait expose', 'arc <exptime>')):
+class CmdStr(LineEdit):
+    def __init__(self, sequence, *args, **kwargs):
+        LineEdit.__init__(self, *args, **kwargs)
+        self.sequence = sequence
 
+    def build(self, text=None):
+        fields = list(filter(None, [field.build() for field in self.sequence.fields]))
+        cmdStr = ' '.join([self.sequence.cmdHead] + fields)
+        self.setText(cmdStr)
+
+
+class EditableValue(LineEdit):
+    def __init__(self, sequence, key, *args, **kwargs):
+        LineEdit.__init__(self, *args, **kwargs)
+        self.key = key
+        self.textChanged.connect(sequence.cmdStr.build)
+
+    def build(self):
+        text = self.text().strip()
+        if text:
+            if text == 'True':
+                return self.key
+            elif text == 'False':
+                return
+            else:
+                return f'{self.key}={text}'
+
+
+class OptionalArgs(QGroupBox):
+    def __init__(self, sequence, options):
+        QGroupBox.__init__(self)
+        self.setTitle('Optional Arguments')
+        self.grid = QGridLayout()
+        self.fields = []
+
+        for i, key in enumerate(options):
+            label, editableValue = Label(key), EditableValue(sequence, key, '')
+            self.fields.append(editableValue)
+            self.grid.addWidget(label, i, 0)
+            self.grid.addWidget(editableValue, i, 1)
+
+        self.setLayout(self.grid)
+
+
+class SequenceLayout(QGridLayout):
+    def __init__(self, seqtype, cmdHead, options=None, **kwargs):
+        self.seqtype = seqtype
+        self.cmdHead = cmdHead
         QGridLayout.__init__(self)
-        self.cmdDescriptor = ''
-        self.typeLabel = Label('Type')
-        self.type = Label(type)
 
-        self.nameLabel = Label('Name')
-        self.name = LineEdit('')
+        self.addWidget(Label('name'), 0, 0)
+        self.addWidget(Label('comments'), 1, 0)
 
-        self.commentsLabel = Label('Comments')
-        self.comments = LineEdit('')
+        self.cmdStr = CmdStr(self)
+        self.name = EditableValue(self, 'name', '')
+        self.comments = EditableValue(self, 'comments', '')
 
-        self.cmdStrLabel = Label('CmdStr')
-        self.cmdStr = LineEdit('')
+        self.fields = []
 
-        self.addWidget(self.typeLabel, 1, 0)
-        self.addWidget(self.type, 1, 1)
+        self.addWidget(self.name, 0, 1)
+        self.addWidget(self.comments, 1, 1)
 
-        self.addWidget(self.nameLabel, 2, 0)
-        self.addWidget(self.name, 2, 1)
+        for i, (key, value) in enumerate(kwargs.items()):
+            nRows = self.rowCount()
+            label, editableValue = Label(key), EditableValue(self, key, str(value))
+            self.fields.append(editableValue)
+            self.addWidget(label, nRows + i, 0)
+            self.addWidget(editableValue, nRows + i, 1)
 
-        self.addWidget(self.commentsLabel, 3, 0)
-        self.addWidget(self.comments, 3, 1)
+        nRows = self.rowCount()
+        self.addWidget(Label('cmdStr'), nRows, 0)
+        self.addWidget(self.cmdStr, nRows, 1)
 
-        self.addWidget(self.cmdStrLabel, 4, 0)
-        self.addWidget(self.cmdStr, 4, 1)
+        if options is not None:
+            options = OptionalArgs(self, options)
+            self.fields.extend(options.fields)
+            self.addWidget(options, self.rowCount(), 0, options.grid.rowCount(), 2)
+
+        self.cmdStr.build()
 
     def clearLayout(self):
         while self.count():
@@ -45,189 +93,95 @@ class ExperimentLayout(QGridLayout):
                 widget.deleteLater()
 
 
-class CommandLayout(ExperimentLayout):
+class Biases(SequenceLayout):
     def __init__(self):
-        ExperimentLayout.__init__(self, type='Command')
-        self.nameLabel.setDisabled(True)
+        SequenceLayout.__init__(self, 'biases', 'iic bias', options=['duplicate', 'cam', 'head', 'tail'])
+
+
+class Darks(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'darks', 'iic dark', exptime=60, options=['duplicate', 'cam', 'head', 'tail'])
+
+
+class Arcs(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'arcs', 'iic expose arc', exptime=15,
+                                options=['duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff',
+                                         'iisOn', 'iisOff', 'head', 'tail'])
+
+
+class Flats(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'flats', 'iic expose flat', exptime=15, options=['duplicate', 'cam',
+                                                                                       'warmingTime', 'switchOff',
+                                                                                       'head', 'tail'])
+        for field in self.fields:
+            if field.key == 'switchOff':
+                field.setText('False')
+
+
+class SlitThroughFocus(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'slitThroughFocus', 'iic slit throughfocus', exptime=15, position='-5,5,11',
+                                options=['duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
+
+
+class DetectorThroughFocus(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'detThroughFocus', 'iic detector throughfocus', exptime=15, position='0,300,11',
+                                options=['tilt', 'duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head',
+                                         'tail'])
+
+
+class DitherFlats(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'ditherFlats', 'iic dither flat', exptime=15, pixels=0.3, nPositions=20,
+                                options=['duplicate', 'cam', 'warmingTime', 'switchOff', 'head', 'tail'])
+
+        for field in self.fields:
+            if field.key == 'switchOff':
+                field.setText('False')
+
+
+class DitherArcs(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'ditherArcs', 'iic dither arc', exptime=15, pixels=0.5,
+                                options=['doMinus', 'duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head',
+                                         'tail'])
+        for field in self.fields:
+            if field.key == 'doMinus':
+                field.setText('False')
+
+
+class Defocus(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'defocus', 'iic defocus arc', exptime=15, position='-5,5,11',
+                                options=['duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
+
+
+class GenericCmd(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'Command', '')
         self.name.setDisabled(True)
-        self.commentsLabel.setDisabled(True)
         self.comments.setDisabled(True)
-
-
-class ArcLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='Arcs')
-        self.cmdDescriptor = 'spsait expose arc '
-        self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=15.0 duplicate=5 switchOn=hgar switchOff=hgar attenuator=120 cam=r1')
-
-
-class FlatLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='Flats')
-        self.cmdDescriptor = 'spsait expose flat '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=15.0 duplicate=2 switchOff attenuator=240 cam=r1')
-
-
-class BiasesLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='Biases')
-        self.cmdDescriptor = 'spsait bias '
-        self.cmdStr.setText(self.cmdDescriptor + 'duplicate=15 cam=r1')
-
-
-class DarksLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='Darks')
-        self.cmdDescriptor = 'spsait dark '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=60.0 duplicate=5 cam=r1')
-
-
-class SlitAlignLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='SlitAlign')
-        self.cmdDescriptor = 'spsait slit align '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 position=-2,2,10 duplicate=2')
-
-
-class SlitTFLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='SlitTF')
-        self.cmdDescriptor = 'spsait slit throughfocus '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=15.0 position=-2,2,10 duplicate=2 cam=r1')
-
-
-class DetAlignLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='DetAlign')
-        self.cmdDescriptor = 'spsait detector throughfocus '
-        self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 cam=r1 position=10,300,20 tilt=0,0,40 duplicate=2 switchOn=hgar switchOff=hgar')
-
-
-class DitheredFlatsLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='DitheredFlats')
-        self.cmdDescriptor = 'spsait dither flat '
-        self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=15.0 pixels=0.3 nbPosition=20 duplicate=3 switchOff cam=r1')
-
-
-class DitheredPsfLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='DitheredPsf')
-        self.cmdDescriptor = 'spsait dither psf '
-        self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=15.0 pixels=0.5 duplicate=2 switchOn=hgar cam=r1')
-
-
-class DefocusedPsfLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='DefocusedPsf')
-        self.cmdDescriptor = 'spsait defocus '
-        self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=15.0 attenuator=200 position=-5,5,20 switchOn=hgar switchOff=hgar duplicate=2 cam=r1')
-
-
-class ImageStabilityLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='ImageStability')
-        self.cmdDescriptor = 'spsait imstab '
-        self.cmdStr.setText(
-            self.cmdDescriptor + 'exptime=2.0 duration=24 delay=0.5 duplicate=2 switchOn=hgar switchOff=hgar cam=r1')
-
-
-class PreviousExperimentLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='previous')
-
-        self.databaseLabel = Label('Database')
-        self.database = LineEdit('experimentLog')
-
-        self.experimentIdLabel = Label('experimentId')
-        self.experimentId = SpinBox()
-        self.experimentId.setRange(1, Logbook.lastExperimentId(self.database.text()))
-        self.experimentId.valueChanged.connect(self.loadPreviousCmdStr)
-        self.experimentId.setValue(self.experimentId.maximum())
-
-        for row in [2, 3, 4]:
-            self.removeItem(self.itemAtPosition(row, 0))
-            self.removeItem(self.itemAtPosition(row, 1))
-
-        self.addWidget(self.databaseLabel, 2, 0)
-        self.addWidget(self.database, 2, 1)
-
-        self.addWidget(self.experimentIdLabel, 3, 0)
-        self.addWidget(self.experimentId, 3, 1)
-
-        self.addWidget(self.nameLabel, 4, 0)
-        self.addWidget(self.name, 4, 1)
-
-        self.addWidget(self.commentsLabel, 5, 0)
-        self.addWidget(self.comments, 5, 1)
-
-        self.addWidget(self.cmdStrLabel, 6, 0)
-        self.addWidget(self.cmdStr, 6, 1)
-
-    def loadPreviousCmdStr(self, experimentId):
-        try:
-            name, comments, cmdStr = Logbook.buildCmdStr(self.database.text(), experimentId)
-            self.name.setEnabled(True)
-            self.comments.setEnabled(True)
-            self.cmdStr.setEnabled(True)
-            self.name.setText(name)
-            self.comments.setText(comments)
-            self.cmdStr.setText(cmdStr)
-
-        except TypeError:
-            self.name.setDisabled(True)
-            self.comments.setDisabled(True)
-            self.cmdStr.setDisabled(True)
-
-
-class SacAlignLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='SacAlign')
-        self.cmdDescriptor = 'spsait sac align '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 position=-300,500,10 focus=5.0  duplicate=2')
-
-
-class SacExposeLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='SacExpose')
-        self.cmdDescriptor = 'spsait sac expose '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2')
-
-
-class SacBackgroundLayout(ExperimentLayout):
-    def __init__(self):
-        ExperimentLayout.__init__(self, type='SacBackground')
-        self.cmdDescriptor = 'spsait sac background '
-        self.cmdStr.setText(self.cmdDescriptor + 'exptime=2.0 duplicate=2')
 
 
 class Dialog(QDialog):
     def __init__(self, panelwidget):
         QDialog.__init__(self, panelwidget)
         self.panelwidget = panelwidget
-        self.availableSeq = dict(Command=CommandLayout,
-                                 Previous=PreviousExperimentLayout,
-                                 Arcs=ArcLayout,
-                                 Flats=FlatLayout,
-                                 Biases=BiasesLayout,
-                                 Darks=DarksLayout,
-                                 SlitAlign=SlitAlignLayout,
-                                 SlitTF=SlitTFLayout,
-                                 DetAlign=DetAlignLayout,
-                                 DitheredFlats=DitheredFlatsLayout,
-                                 DitheredPsf=DitheredPsfLayout,
-                                 DefocusedPsf=DefocusedPsfLayout,
-                                 ImageStability=ImageStabilityLayout,
-                                 SacAlign=SacAlignLayout,
-                                 SacExpose=SacExposeLayout,
-                                 SacBackground=SacBackgroundLayout,
-
-                                 )
+        self.availableSeq = dict(
+            biases=Biases,
+            darks=Darks,
+            arcs=Arcs,
+            flats=Flats,
+            slitThroughFocus=SlitThroughFocus,
+            detectorThroughFocus=DetectorThroughFocus,
+            ditherFlats=DitherFlats,
+            ditherArcs=DitherArcs,
+            defocus=Defocus,
+            command=GenericCmd,
+        )
 
         vbox = QVBoxLayout()
         self.grid = QGridLayout()
@@ -238,10 +192,11 @@ class Dialog(QDialog):
         self.comboType = ComboBox()
         self.comboType.addItems(list(self.availableSeq.keys()))
         self.comboType.currentIndexChanged.connect(self.showRelevantWidgets)
-        self.comboType.setCurrentIndex(1)
 
         self.grid.addWidget(self.comboLabel, 1, 0)
         self.grid.addWidget(self.comboType, 1, 1)
+        self.addLayout('', '')
+        self.comboType.setCurrentIndex(1)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Close)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.addSequence)
@@ -257,36 +212,40 @@ class Dialog(QDialog):
         self.setMinimumWidth(400)
 
     def showRelevantWidgets(self):
+        self.seqLayout.clearLayout()
+        self.grid.removeItem(self.seqLayout)
+        self.adjustSize()
+
         try:
             name = self.seqLayout.name.text()
             comments = self.seqLayout.comments.text()
-            self.seqLayout.clearLayout()
-            self.grid.removeItem(self.seqLayout)
-            self.adjustSize()
 
         except Exception as e:
             name = ''
             comments = ''
 
+        self.addLayout(name, comments)
+
+    def addLayout(self, prevName, prevComments):
+
         obj = self.availableSeq[self.comboType.currentText()]
         self.seqLayout = obj()
+
         self.grid.addLayout(self.seqLayout, 2, 0, self.seqLayout.rowCount(), self.seqLayout.columnCount())
         self.adjustSize()
 
-        if name and not self.seqLayout.name.text():
-            self.seqLayout.name.setText(name)
+        if prevName and not self.seqLayout.name.text():
+            self.seqLayout.name.setText(prevName)
 
-        if comments and not self.seqLayout.comments.text():
-            self.seqLayout.comments.setText(comments)
+        if prevComments and not self.seqLayout.comments.text():
+            self.seqLayout.comments.setText(prevComments)
 
     def addSequence(self):
-        type = self.seqLayout.type.text()
-        name = self.seqLayout.name.text()
-        comments = self.seqLayout.comments.text()
-        cmdDescriptor = self.seqLayout.cmdDescriptor
-        cmdStr = self.seqLayout.cmdStr.text()
+        type = self.seqLayout.seqtype
+        name = str(self.seqLayout.name.text())
+        comments = str(self.seqLayout.comments.text())
+        cmdStr = str(self.seqLayout.cmdStr.text())
 
-        experiment = ExperimentRow(self.panelwidget, type=type, name=name, comments=comments,
-                                   cmdDescriptor=cmdDescriptor, cmdStr=cmdStr)
+        cmdRow = CmdRow(self.panelwidget, type, name, comments, cmdStr)
 
-        self.panelwidget.addExperiment(experiment=experiment)
+        self.panelwidget.add(cmdRow=cmdRow)
