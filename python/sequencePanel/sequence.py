@@ -6,6 +6,8 @@ import numpy as np
 from PyQt5.QtWidgets import QCheckBox
 from sequencePanel.widgets import IconButton, EyeButton
 
+def cleanStr(text):
+    return text.replace('"', "'").strip()
 
 class SubCommand(object):
     def __init__(self, subId, cmdStr, didFail, returnStr):
@@ -54,20 +56,18 @@ class SubCommand(object):
         return visit
 
 
-class ExperimentRow(object):
+class CmdRow(object):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
              "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
 
-    def __init__(self, panelwidget, type, name, comments, cmdDescriptor, cmdStr):
+    def __init__(self, panelwidget, seqtype, name, comments, cmdStr):
         self.status = 'init'
         self.id = -1
         self.panelwidget = panelwidget
-        self.type = type
+        self.seqtype = seqtype
         self.name = name
         self.comments = comments
-        self.cmdDescriptor = cmdDescriptor
         self.cmdStr = cmdStr
-        self.anomalies = ''
         self.cmds = dict()
         self.returnStr = ''
 
@@ -88,9 +88,14 @@ class ExperimentRow(object):
         self.buttonEye.clicked.connect(partial(self.showSubcommands))
 
     @property
+    def fullCmd(self):
+        name = f'name="{self.name}"' if self.name else ''
+        comments = f'comments="{self.comments}"' if self.comments else ''
+        return f'{self.cmdStr} {name} {comments}'.strip()
+
+    @property
     def kwargs(self):
-        return dict(type=self.type, name=self.name, comments=self.comments, cmdDescriptor=self.cmdDescriptor,
-                    cmdStr=self.cmdStr)
+        return dict(type=self.seqtype, name=self.name, comments=self.comments, cmdStr=self.cmdStr)
 
     @property
     def subcommands(self):
@@ -141,7 +146,7 @@ class ExperimentRow(object):
         return self.status in ['finished', 'failed'] and self.visits
 
     def colorCheckbox(self):
-        self.valid.setStyleSheet("QCheckBox {background-color:%s};" % ExperimentRow.color[self.status][0])
+        self.valid.setStyleSheet("QCheckBox {background-color:%s};" % CmdRow.color[self.status][0])
 
     def setStatus(self, status):
         self.status = status
@@ -153,10 +158,7 @@ class ExperimentRow(object):
         self.setStatus(status='active')
         self.valid.setEnabled(False)
 
-        name = 'name="%s"' % self.name.replace('"', "") if self.name else ''
-        comments = 'comments="%s"' % self.comments.replace('"', "") if self.comments else ''
-
-        self.panelwidget.sendCommand(fullCmd='%s %s %s' % (self.cmdStr, name, comments),
+        self.panelwidget.sendCommand(fullCmd=self.fullCmd,
                                      timeLim=7 * 24 * 3600,
                                      callFunc=self.handleResult)
 
@@ -191,10 +193,9 @@ class ExperimentRow(object):
         self.panelwidget.printResponse(resp=resp)
 
     def updateInfo(self, reply):
-        print(reply.keywords)
 
         if 'sps_sequence' in reply.keywords:
-            self.setExperiment(*([''] + reply.keywords['sps_sequence'].values))
+            self.setSequence(*reply.keywords['sps_sequence'].values)
 
         if 'experiment' in reply.keywords:
             self.setExperiment(*reply.keywords['experiment'].values)
@@ -207,13 +208,25 @@ class ExperimentRow(object):
         self.setFinished() if code == ':' else self.setFailed()
         # self.showSubcommands(bool=False)
 
-        self.panelwidget.sequencer.nextPlease()
+        self.panelwidget.scheduler.nextPlease()
 
-    def setExperiment(self, dbname, experimentId, exptype, cmdStr, name, comments):
+    def setSequence(self, sequenceId, seqtype, cmdStr, name, comments):
+
+        self.id = int(sequenceId)
+        self.seqtype = seqtype
+        self.name = name
+        self.comments = comments
+        self.cmdStr = cmdStr
+        self.buttonEye.setEnabled(True)
+        # self.showSubcommands(bool=True)
+
+        self.panelwidget.updateTable()
+
+    def setExperiment(self, dbname, experimentId, seqtype, cmdStr, name, comments):
 
         self.dbname = dbname
         self.id = int(experimentId)
-        self.type = exptype
+        self.seqtype = seqtype
         self.name = name
         self.comments = comments
         self.cmdStr = cmdStr
@@ -238,28 +251,28 @@ class ExperimentRow(object):
         self.panelwidget.updateTable()
 
     def moveUp(self):
-        experiments = self.panelwidget.experiments
+        cmdRows = self.panelwidget.cmdRows
 
-        new_ind = experiments.index(self) - 1
+        new_ind = cmdRows.index(self) - 1
         new_ind = 0 if new_ind < 0 else new_ind
-        experiments.remove(self)
-        experiments.insert(new_ind, self)
+        cmdRows.remove(self)
+        cmdRows.insert(new_ind, self)
 
         self.panelwidget.updateTable()
 
     def moveDown(self):
-        experiments = self.panelwidget.experiments
+        cmdRows = self.panelwidget.cmdRows
 
-        new_ind = experiments.index(self) + 1
-        new_ind = len(experiments) - 1 if new_ind > len(experiments) - 1 else new_ind
-        experiments.remove(self)
-        experiments.insert(new_ind, self)
+        new_ind = cmdRows.index(self) + 1
+        new_ind = len(cmdRows) - 1 if new_ind > len(cmdRows) - 1 else new_ind
+        cmdRows.remove(self)
+        cmdRows.insert(new_ind, self)
 
         self.panelwidget.updateTable()
 
     def remove(self):
         if not self.isActive:
-            experiments = self.panelwidget.experiments
-            experiments.remove(self)
+            cmdRows = self.panelwidget.cmdRows
+            cmdRows.remove(self)
 
             self.panelwidget.updateTable()

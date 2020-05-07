@@ -1,110 +1,186 @@
-from functools import partial
-
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QScrollBar
-
-
-class AnomaliesItem(QTableWidgetItem):
-    color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
-             "aborted": ("#88919a", "#FFFFFF"), "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
-
-    def __init__(self, experiment, align=Qt.AlignCenter):
-        self.experiment = experiment
-        QTableWidgetItem.__init__(self, experiment.anomalies)
-
-        self.setTextAlignment(align)
-        if not experiment.registered:
-            self.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-
-        back, col = AnomaliesItem.color[experiment.status]
-
-        self.setForeground(QColor(col))
-        self.setBackground(QColor(back))
-
-    def valueChanged(self):
-
-        anomalies = self.text()
-        setattr(self.experiment, "anomalies", str(anomalies))
-
-        try:
-            cmdStr = 'spsait logbook dbname=%s experimentId=%i anomalies="%s"' % (self.experiment.dbname,
-                                                                                  self.experiment.id,
-                                                                                  anomalies.replace('"', ""))
-            QTimer.singleShot(50, partial(self.experiment.panelwidget.sendCommand, cmdStr, 5))
-
-        except Exception as e:
-            print(e)
 
 
 class CenteredItem(QTableWidgetItem):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
              "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
 
-    def __init__(self, experiment, attr, typeFunc, lock=False, align=Qt.AlignCenter):
-        self.experiment = experiment
+    def __init__(self, cmdRow, attr, typeFunc, lock=False, align=Qt.AlignCenter):
+        self.cmdRow = cmdRow
         self.attr = attr
         self.typeFunc = typeFunc
-        QTableWidgetItem.__init__(self, str(getattr(experiment, attr)))
+        QTableWidgetItem.__init__(self, str(getattr(cmdRow, attr)))
         self.setTextAlignment(align)
 
         if lock:
             self.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
-        back, col = CenteredItem.color[experiment.status]
+        back, col = CenteredItem.color[cmdRow.status]
 
         self.setForeground(QColor(col))
         self.setBackground(QColor(back))
 
     def valueChanged(self):
-        if self.experiment.status == 'init':
+        if self.cmdRow.status == 'init':
             val = self.text()
-            setattr(self.experiment, self.attr, self.typeFunc(val))
+            setattr(self.cmdRow, self.attr, self.typeFunc(val))
         else:
-            self.setText(str(getattr(self.experiment, self.attr)))
+            self.setText(str(getattr(self.cmdRow, self.attr)))
 
 
-class CmdStrItem(CenteredItem):
-    def __init__(self, experiment):
-        CenteredItem.__init__(self, experiment=experiment, attr='cmdStr', typeFunc=str)
+class Table(QTableWidget):
+    colwidthRatio = {6: 0.12, 7: 0.15, 8: 0.43, 11: 0.3}
+    colnames = ['', '', '', 'Valid', ' Id', 'Type', 'Name', 'Comments', 'CmdStr', 'VisitStart', 'VisitEnd', 'ReturnStr']
 
-    def valueChanged(self):
-        val = str(self.text())
+    def __init__(self, panelwidget):
+        self.panelwidget = panelwidget
+        self.controlKey = False
 
-        if self.experiment.status != 'init' or (
-                self.experiment.cmdDescriptor and not self.experiment.cmdDescriptor in val):
-            self.setText(self.experiment.cmdStr)
-        else:
-            self.experiment.cmdStr = val
+        nbRows = sum([cmdRow.nbRows for cmdRow in self.cmdRows])
 
+        QTableWidget.__init__(self, nbRows, len(Table.colnames))
+        self.setMouseTracking(True)
 
-class EditableField(CenteredItem):
-    def __init__(self, experiment, attr, typeFunc):
-        CenteredItem.__init__(self, experiment=experiment, attr=attr, typeFunc=typeFunc)
+        self.setHorizontalHeaderLabels(Table.colnames)
 
-    def valueChanged(self):
-        if self.experiment.status == 'init':
-            val = self.text()
-            setattr(self.experiment, self.attr, self.typeFunc(val))
+        self.verticalHeader().setDefaultSectionSize(6)
+        self.verticalHeader().hide()
 
-        elif self.experiment.registered:
+        rowNumber = 0
+        for cmdRow in self.cmdRows:
+            cmdRow.rowNumber = rowNumber
+            self.setRowHeight(rowNumber, 14)
+            self.setRowHeight(rowNumber + 1, 14)
 
-            val = self.text()
-            setattr(self.experiment, self.attr, self.typeFunc(val))
+            self.setCellWidget(rowNumber, 0, cmdRow.buttonDelete)
+            self.setCellWidget(rowNumber, 1, cmdRow.buttonMoveUp)
+            self.setCellWidget(rowNumber + 1, 1, cmdRow.buttonMoveDown)
+            self.setCellWidget(rowNumber, 2, cmdRow.buttonEye)
+            self.setCellWidget(rowNumber, 3, cmdRow.valid)
+            self.setItem(rowNumber, 4, CenteredItem(cmdRow, 'id', int, lock=True))
+            self.setItem(rowNumber, 5, CenteredItem(cmdRow, 'seqtype', str, lock=True))
+            self.setItem(rowNumber, 6, CenteredItem(cmdRow, 'name', str))
+            self.setItem(rowNumber, 7, CenteredItem(cmdRow, 'comments', str))
 
+            nb = 2
+            if cmdRow.showSub and cmdRow.subcommands:
+                if len(cmdRow.subcommands) > 1:
+                    span = len(cmdRow.subcommands)
+                    cols = [0, 2, 3, 4, 5, 6, 7]
+                    for nb, subcommand in enumerate(cmdRow.subcommands):
+                        self.setRowHeight(rowNumber + nb, 16)
+                        self.setItem(rowNumber + nb, 8, CenteredItem(subcommand, 'cmdStr', str))
+                        self.setItem(rowNumber + nb, 9, CenteredItem(subcommand, 'visitStart', int, lock=True))
+                        self.setItem(rowNumber + nb, 10, CenteredItem(subcommand, 'visitEnd', int, lock=True))
+                        self.setItem(rowNumber + nb, 11, CenteredItem(subcommand, 'returnStr', str, lock=True))
+                    nb += 1
+                else:
+                    subcommand = cmdRow.subcommands[0]
+                    span = 2
+                    cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                    self.setItem(rowNumber, 8, CenteredItem(subcommand, 'cmdStr', str))
+                    self.setItem(rowNumber, 9, CenteredItem(subcommand, 'visitStart', int, lock=True))
+                    self.setItem(rowNumber, 10, CenteredItem(subcommand, 'visitEnd', int, lock=True))
+                    self.setItem(rowNumber, 11, CenteredItem(subcommand, 'returnStr', str))
+
+            else:
+                span = 2
+                cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                self.setItem(rowNumber, 8, CenteredItem(cmdRow, 'cmdStr', str))
+                self.setItem(rowNumber, 9, CenteredItem(cmdRow, 'visitStart', int, lock=True))
+                self.setItem(rowNumber, 10, CenteredItem(cmdRow, 'visitEnd', int, lock=True))
+                self.setItem(rowNumber, 11, CenteredItem(cmdRow, 'returnStr', str))
+
+            for col in cols:
+                self.setSpan(rowNumber, col, span, 1)
+
+            rowNumber += nb
+
+        self.cellChanged.connect(self.userCellChanged)
+        self.cellClicked.connect(self.userCellClicked)
+        self.setFont(self.getFont())
+        self.horizontalHeader().setFont(self.getFont(size=11))
+
+        self.setVerticalScrollBar(VScrollBar(self))
+
+    @property
+    def cmdRows(self):
+        return self.panelwidget.cmdRows
+
+    def resizeEvent(self, event):
+        autoResize = [j for j in range(len(Table.colnames)) if j not in Table.colwidthRatio]
+        for j in autoResize:
+            self.resizeColumnToContents(j)
+
+        remainingWidth = event.size().width() - sum([self.columnWidth(j) for j in autoResize])
+
+        for col, ratio in Table.colwidthRatio.items():
+            self.setColumnWidth(col, ratio * remainingWidth)
+
+        QTableWidget.resizeEvent(self, event)
+
+    def getFont(self, size=10):
+        font = self.font()
+        font.setPixelSize(size)
+        return font
+
+    def userCellChanged(self, row, column):
+        self.item(row, column).valueChanged()
+
+    def userCellClicked(self, row, column):
+        if column != 4:
+            return
+        self.setRowSelected(row, True)
+
+    def setRowSelected(self, row, bool):
+        for col in range(4, 12):
+            self.item(row, col).setSelected(bool)
+
+    def selectAll(self):
+        for i in range(self.rowCount()):
             try:
-                cmdStr = 'spsait logbook dbname=%s experimentId=%i %s="%s"' % (self.experiment.dbname,
-                                                                               self.experiment.id,
-                                                                               self.attr,
-                                                                               val.replace('"', ""))
+                self.setRowSelected(i, True)
+            except AttributeError:
+                pass
 
-                QTimer.singleShot(50, partial(self.experiment.panelwidget.sendCommand, cmdStr, 5))
+    def keyPressEvent(self, QKeyEvent):
 
-            except Exception as e:
-                print(e)
+        try:
+            if QKeyEvent.key() == Qt.Key_Control:
+                self.controlKey = True
 
-        else:
-            self.setText(str(getattr(self.experiment, self.attr)))
+            if QKeyEvent.key() == Qt.Key_C and self.controlKey:
+
+                selectedExp = list(set([item.cmdRow for item in self.selectedItems()]))
+                self.panelwidget.copyExperiment(selectedExp)
+
+                for range in self.selectedRanges():
+                    self.setRangeSelected(range, False)
+
+            elif QKeyEvent.key() == Qt.Key_V and self.controlKey:
+                if self.selectedRanges():
+                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2 + 1
+                else:
+                    ind = len(self.cmdRows)
+
+                self.panelwidget.pasteExperiment(ind)
+
+            if QKeyEvent.key() == Qt.Key_Delete:
+                selectedExp = [item.cmdRow for item in self.selectedItems()]
+                self.panelwidget.removeExperiment(selectedExp)
+
+        except KeyError:
+            pass
+
+    def keyReleaseEvent(self, QKeyEvent):
+        if QKeyEvent.key() == Qt.Key_Control:
+            self.controlKey = False
+
+    def mouseMoveEvent(self, event):
+        QTableWidget.mouseMoveEvent(self, event)
+        self.panelwidget.mouseMove.checkPosition(x=event.x() + 10, y=event.y() + 54)
 
 
 class VScrollBar(QScrollBar):
@@ -125,153 +201,10 @@ class VScrollBar(QScrollBar):
 
         if self.panelwidget.currInd and self.panelwidget.mouseMove.userInactive:
             currInd = self.panelwidget.currInd - 1
-            topHeight = sum([exp.nbRows for exp in self.panelwidget.experiments[:currInd]])
+            topHeight = sum([cmdRow.nbRows for cmdRow in self.panelwidget.cmdRows[:currInd]])
             barSize = a * self.parent().height() + b
-            center = topHeight + self.panelwidget.experiments[currInd].height
+            center = topHeight + self.panelwidget.cmdRows[currInd].height
             value = round(center - barSize / 2)
             self.setValue(value)
 
         QScrollBar.paintEvent(self, event)
-
-
-class Table(QTableWidget):
-    colwidth = {4: 40, 8: 400, 12: 160}
-
-    def __init__(self, panelwidget):
-        self.panelwidget = panelwidget
-        self.controlKey = False
-
-        colnames = ['', '', '', ' Id', 'Valid', 'Type', 'Name', 'Comments', 'CmdStr',
-                    'VisitStart', 'VisitEnd', 'Anomalies', 'ReturnStr']
-
-        nbRows = sum([experiment.nbRows for experiment in self.experiments])
-
-        QTableWidget.__init__(self, nbRows, len(colnames))
-        self.setMouseTracking(True)
-
-        self.setHorizontalHeaderLabels(colnames)
-
-        self.verticalHeader().setDefaultSectionSize(6)
-        self.verticalHeader().hide()
-
-        rowNumber = 0
-        for experiment in self.experiments:
-            experiment.rowNumber = rowNumber
-            self.setRowHeight(rowNumber, 14)
-            self.setRowHeight(rowNumber + 1, 14)
-
-            self.setCellWidget(rowNumber, 0, experiment.buttonDelete)
-            self.setCellWidget(rowNumber, 1, experiment.buttonMoveUp)
-            self.setCellWidget(rowNumber + 1, 1, experiment.buttonMoveDown)
-            self.setCellWidget(rowNumber, 2, experiment.buttonEye)
-            self.setItem(rowNumber, 3, CenteredItem(experiment, 'id', int, lock=True))
-            self.setCellWidget(rowNumber, 4, experiment.valid)
-            self.setItem(rowNumber, 5, CenteredItem(experiment, 'type', str, lock=True))
-            self.setItem(rowNumber, 6, EditableField(experiment, 'name', str))
-            self.setItem(rowNumber, 7, EditableField(experiment, 'comments', str))
-
-            nb = 2
-            if experiment.showSub and experiment.subcommands:
-                if len(experiment.subcommands) > 1:
-                    span = len(experiment.subcommands)
-                    cols = [0, 2, 3, 4, 5, 6, 7]
-                    for nb, subcommand in enumerate(experiment.subcommands):
-                        self.setRowHeight(rowNumber + nb, 16)
-                        self.setItem(rowNumber + nb, 8, CenteredItem(subcommand, 'cmdStr', str))
-                        self.setItem(rowNumber + nb, 9, CenteredItem(subcommand, 'visitStart', int, lock=True))
-                        self.setItem(rowNumber + nb, 10, CenteredItem(subcommand, 'visitEnd', int, lock=True))
-                        self.setItem(rowNumber + nb, 11, CenteredItem(subcommand, 'anomalies', str, lock=True))
-                        self.setItem(rowNumber + nb, 12, CenteredItem(subcommand, 'returnStr', str, lock=True))
-                    nb += 1
-                else:
-                    subcommand = experiment.subcommands[0]
-                    span = 2
-                    cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-                    self.setItem(rowNumber, 8, CenteredItem(subcommand, 'cmdStr', str))
-                    self.setItem(rowNumber, 9, CenteredItem(subcommand, 'visitStart', int, lock=True))
-                    self.setItem(rowNumber, 10, CenteredItem(subcommand, 'visitEnd', int, lock=True))
-                    self.setItem(rowNumber, 11, CenteredItem(subcommand, 'anomalies', str, lock=True))
-                    self.setItem(rowNumber, 12, CenteredItem(subcommand, 'returnStr', str, lock=True))
-
-            else:
-                span = 2
-                cols = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-                self.setItem(rowNumber, 8, CmdStrItem(experiment))
-                self.setItem(rowNumber, 9, CenteredItem(experiment, 'visitStart', int, lock=True))
-                self.setItem(rowNumber, 10, CenteredItem(experiment, 'visitEnd', int, lock=True))
-                self.setItem(rowNumber, 11, AnomaliesItem(experiment))
-                self.setItem(rowNumber, 12, CenteredItem(experiment, 'returnStr', str, lock=True))
-
-            for col in cols:
-                self.setSpan(rowNumber, col, span, 1)
-
-            rowNumber += nb
-
-            for j in range(len(colnames)):
-                try:
-                    self.setColumnWidth(j, Table.colwidth[j])
-                except KeyError:
-                    self.resizeColumnToContents(j)
-
-        self.cellChanged.connect(self.userCellChange)
-        self.setFont(self.getFont())
-        self.horizontalHeader().setFont(self.getFont(size=11))
-
-        self.setVerticalScrollBar(VScrollBar(self))
-
-    @property
-    def experiments(self):
-        return self.panelwidget.experiments
-
-    def getFont(self, size=10):
-        font = self.font()
-        font.setPixelSize(size)
-        return font
-
-    def userCellChange(self, i, j):
-        item = self.item(i, j)
-        item.valueChanged()
-
-    def selectAll(self):
-        for i in range(self.rowCount()):
-            try:
-                self.item(i, 2).setSelected(True)
-            except AttributeError:
-                pass
-
-    def keyPressEvent(self, QKeyEvent):
-
-        try:
-            if QKeyEvent.key() == Qt.Key_Control:
-                self.controlKey = True
-
-            if QKeyEvent.key() == Qt.Key_C and self.controlKey:
-
-                selectedExp = [item.experiment for item in self.selectedItems()]
-                self.panelwidget.copyExperiment(selectedExp)
-
-                for range in self.selectedRanges():
-                    self.setRangeSelected(range, False)
-
-            elif QKeyEvent.key() == Qt.Key_V and self.controlKey:
-                if self.selectedRanges():
-                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2 + 1
-                else:
-                    ind = len(self.experiments)
-
-                self.panelwidget.pasteExperiment(ind)
-
-            if QKeyEvent.key() == Qt.Key_Delete:
-                selectedExp = [item.experiment for item in self.selectedItems()]
-                self.panelwidget.removeExperiment(selectedExp)
-
-        except KeyError:
-            pass
-
-    def keyReleaseEvent(self, QKeyEvent):
-        if QKeyEvent.key() == Qt.Key_Control:
-            self.controlKey = False
-
-    def mouseMoveEvent(self, event):
-        QTableWidget.mouseMoveEvent(self, event)
-        self.panelwidget.mouseMove.checkPosition(x=event.x() + 10, y=event.y() + 54)
