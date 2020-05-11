@@ -1,16 +1,16 @@
 __author__ = 'alefur'
 
 import os
-import yaml
 import time
 
 import numpy as np
+import yaml
 from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, QFileDialog
 from sequencePanel.dialog import Dialog
 from sequencePanel.scheduler import Scheduler
+from sequencePanel.sequence import CmdRow
 from sequencePanel.table import Table
 from sequencePanel.widgets import CmdLogArea
-from sequencePanel.sequence import CmdRow
 
 
 class MouseMove(object):
@@ -88,6 +88,10 @@ class PanelWidget(QWidget):
         self.cmdRows.append(cmdRow)
         self.updateTable()
 
+    def insert(self, index, cmdRow):
+        self.cmdRows.insert(index, cmdRow)
+        self.updateTable()
+
     def updateTable(self):
 
         scrollvalue = self.sequenceTable.verticalScrollBar().value()
@@ -103,7 +107,6 @@ class PanelWidget(QWidget):
         self.sequenceTable.verticalScrollBar().setScrollValue(value=scrollvalue)
 
     def sendCmdLine(self):
-
         self.sendCommand(fullCmd=self.commandLine.text())
 
     def sendCommand(self, fullCmd, timeLim=300, callFunc=None):
@@ -195,9 +198,25 @@ class PanelWidget(QWidget):
     def selectAll(self):
         self.sequenceTable.selectAll()
 
+    def copy(self, cmdRows):
+        self.clipboard = [cmdRow.info for cmdRow in cmdRows]
+
+    def paste(self, ind):
+        newSeq = [CmdRow(self, **kwargs) for kwargs in self.clipboard]
+        self.cmdRows[ind:ind] = newSeq
+        self.updateTable()
+
+    def remove(self, cmdRows):
+        for cmdRow in cmdRows:
+            if not cmdRow in self.cmdRows:
+                continue
+
+            self.cmdRows.remove(cmdRow)
+        self.updateTable()
+
     def clearDone(self):
-        toRemove = [experiment for experiment in self.experiments if experiment.status in ['finished', 'failed']]
-        self.removeExperiment(toRemove)
+        cmdRows = [cmdRow for cmdRow in self.cmdRows if cmdRow.status in ['finished', 'failed']]
+        self.remove(cmdRows)
 
     def mouseMoveEvent(self, event):
         self.mouseMove.checkPosition(x=event.x(), y=event.y())
@@ -206,4 +225,3 @@ class PanelWidget(QWidget):
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)
         self.sequenceTable.resizeEvent(event)
-

@@ -99,7 +99,6 @@ class Table(QTableWidget):
             rowNumber += nb
 
         self.cellChanged.connect(self.userCellChanged)
-        self.cellClicked.connect(self.userCellClicked)
         self.setFont(self.getFont())
         self.horizontalHeader().setFont(self.getFont(size=11))
 
@@ -129,11 +128,6 @@ class Table(QTableWidget):
     def userCellChanged(self, row, column):
         self.item(row, column).valueChanged()
 
-    def userCellClicked(self, row, column):
-        if column != 4:
-            return
-        self.setRowSelected(row, True)
-
     def setRowSelected(self, row, bool):
         for col in range(4, 12):
             self.item(row, col).setSelected(bool)
@@ -153,23 +147,23 @@ class Table(QTableWidget):
 
             if QKeyEvent.key() == Qt.Key_C and self.controlKey:
 
-                selectedExp = list(set([item.cmdRow for item in self.selectedItems()]))
-                self.panelwidget.copyExperiment(selectedExp)
+                cmdRows = list(set([item.cmdRow for item in self.selectedItems()]))
+                self.panelwidget.copy(cmdRows)
 
                 for range in self.selectedRanges():
                     self.setRangeSelected(range, False)
 
             elif QKeyEvent.key() == Qt.Key_V and self.controlKey:
                 if self.selectedRanges():
-                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2 + 1
+                    ind = max([range.bottomRow() for range in self.selectedRanges()]) // 2
                 else:
                     ind = len(self.cmdRows)
 
-                self.panelwidget.pasteExperiment(ind)
+                self.panelwidget.paste(ind)
 
             if QKeyEvent.key() == Qt.Key_Delete:
-                selectedExp = [item.cmdRow for item in self.selectedItems()]
-                self.panelwidget.removeExperiment(selectedExp)
+                cmdRows = list(set([item.cmdRow for item in self.selectedItems()]))
+                self.panelwidget.remove(cmdRows)
 
         except KeyError:
             pass
