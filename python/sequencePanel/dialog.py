@@ -2,8 +2,10 @@ __author__ = 'alefur'
 
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox, QGroupBox
 from sequencePanel.sequence import CmdRow
-from sequencePanel.widgets import Label, LineEdit, ComboBox
+from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
 
+
+from pfs.utils.opdb import opDB
 
 class CmdStr(LineEdit):
     def __init__(self, sequence, *args, **kwargs):
@@ -166,6 +168,52 @@ class GenericCmd(SequenceLayout):
         self.comments.setDisabled(True)
 
 
+class Previous(SequenceLayout):
+    def __init__(self):
+        QGridLayout.__init__(self)
+
+        self.visitSetId = SpinBox()
+        self.seqtypeWidget = Label('previous')
+        self.name = LineEdit('')
+        self.comments = LineEdit('')
+        self.cmdStr = LineEdit('')
+
+        self.addWidget(Label('visit_set_id'), 0, 0)
+        self.addWidget(self.visitSetId, 0, 1)
+
+        self.addWidget(Label('sequence_type'), 1, 0)
+        self.addWidget(self.seqtypeWidget, 1, 1)
+
+        self.addWidget(Label('name'), 2, 0)
+        self.addWidget(self.name, 2, 1)
+
+        self.addWidget(Label('comments'), 3, 0)
+        self.addWidget(self.comments, 3, 1)
+
+        self.addWidget(Label('cmdStr'), 4, 0)
+        self.addWidget(self.cmdStr, 4, 1)
+
+        max_visit_set_id, = opDB.fetchone('select max(visit_set_id) from sps_sequence')
+        self.visitSetId.setRange(1, max_visit_set_id)
+        self.visitSetId.valueChanged.connect(self.load)
+        self.visitSetId.setValue(max_visit_set_id)
+
+    @property
+    def seqtype(self):
+        return self.seqtypeWidget.text()
+
+    def load(self):
+        query = f'select sequence_type, name, comments, cmd_str from sps_sequence where visit_set_id={self.visitSetId.value()}'
+        try:
+            seqtype, name, comments, cmdStr = opDB.fetchone(query)
+            self.seqtypeWidget.setText(seqtype)
+            self.name.setText(name)
+            self.comments.setText(comments)
+            self.cmdStr.setText(cmdStr)
+        except:
+            pass
+
+
 class Dialog(QDialog):
     def __init__(self, panelwidget):
         QDialog.__init__(self, panelwidget)
@@ -180,6 +228,7 @@ class Dialog(QDialog):
             ditherFlats=DitherFlats,
             ditherArcs=DitherArcs,
             defocus=Defocus,
+            previous=Previous,
             command=GenericCmd,
         )
 
