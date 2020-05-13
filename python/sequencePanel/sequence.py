@@ -206,9 +206,8 @@ class CmdRow(object):
     def terminate(self, code, returnStr):
         self.returnStr = returnStr
         self.setFinished() if code == ':' else self.setFailed()
-        # self.showSubcommands(bool=False)
 
-        self.panelwidget.scheduler.nextPlease()
+        self.panelwidget.scheduler.nextSVP()
 
     def setSequence(self, sequenceId, seqtype, cmdStr, name, comments):
 
@@ -218,7 +217,6 @@ class CmdRow(object):
         self.comments = comments
         self.cmdStr = cmdStr
         self.buttonEye.setEnabled(True)
-        # self.showSubcommands(bool=True)
 
         self.panelwidget.updateTable()
 

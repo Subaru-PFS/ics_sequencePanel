@@ -4,8 +4,36 @@ from datetime import datetime as dt
 from datetime import timedelta
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QSpinBox, QProgressBar
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QSpinBox, QProgressBar, QMessageBox
 from sequencePanel.widgets import CLabel, Label
+
+
+class SafetyCheck(QMessageBox):
+    def __init__(self, **kwargs):
+        QMessageBox.__init__(self, **kwargs)
+        self.setWindowTitle('Data acquisition scheduler')
+        self.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+
+class StopMessage(SafetyCheck):
+    def __init__(self, **kwargs):
+        SafetyCheck.__init__(self, **kwargs)
+        self.setIcon(QMessageBox.Critical)
+        self.setText('Do you really wish to stop ?')
+
+
+class AbortMessage(SafetyCheck):
+    def __init__(self, **kwargs):
+        SafetyCheck.__init__(self, **kwargs)
+        self.setIcon(QMessageBox.Critical)
+        self.setText('Do you really wish to abort current sequence ?')
+
+
+class StartMessage(SafetyCheck):
+    def __init__(self, startdate, **kwargs):
+        SafetyCheck.__init__(self, **kwargs)
+        self.setIcon(QMessageBox.Information)
+        self.setText(f'Do you want to schedule your data at {startdate} ?')
 
 
 class AbortButton(QPushButton):
@@ -16,73 +44,71 @@ class AbortButton(QPushButton):
     def setColor(self, background, color="white"):
         self.setStyleSheet("QPushButton {font: 9pt; background-color: %s;color : %s ;}" % (background, color))
 
+
 class DelayBar(QProgressBar):
-    def __init__(self, panelwidget):
-        self.panelwidget = panelwidget
+    def __init__(self, scheduler):
+        self.scheduler = scheduler
         QProgressBar.__init__(self)
         self.setStyleSheet("QProgressBar { font: 8pt;}")
-        self.setVisible(False)
-        self.progressing = QTimer(panelwidget)
-        self.progressing.setInterval(500)
-        self.progressing.timeout.connect(self.waitInProgress)
+        self.setFixedSize(160, 28)
 
-    @property
-    def scheduler(self):
-        return self.panelwidget.scheduler
+        self.setVisible(False)
+        self.progressing = QTimer(scheduler)
+        self.progressing.setInterval(500)
+        self.progressing.timeout.connect(self.wait)
 
     @property
     def delta(self):
-        return (dt.now() - self.tstart).total_seconds()
+        return int((dt.now() - self.tstart).total_seconds())
 
     def start(self, delay):
-        self.tstart = dt.now()
         self.delay = delay
-
+        self.tstart = dt.now()
         self.setValue(0)
         self.setRange(0, delay)
-        self.setFormat(
-            "Start : %s \r\n " % ((self.tstart + timedelta(seconds=delay)).isoformat())[:-10] + '%p%')
+        self.setFormat("Start : %s \r\n " % self.startDate(delay) + '%p%')
         self.setVisible(True)
         self.progressing.start()
+
+    def startDate(self, delay):
+        return (dt.now() + timedelta(seconds=delay)).isoformat()[: -10]
 
     def stop(self):
         self.progressing.stop()
         self.hide()
 
-    def waitInProgress(self):
-        if not self.scheduler.onGoing:
-            self.stop()
+    def wait(self):
+        if self.delta < self.delay:
+            self.setValue(self.delta)
         else:
-            if self.delta < self.delay:
-                self.setValue(self.delta)
-            else:
-                self.stop()
-                self.scheduler.activateSequence()
+            self.stop()
+            self.scheduler.activate()
 
 
 class Scheduler(QGridLayout):
     delayCmd = 2
+
     def __init__(self, panelwidget):
         self.panelwidget = panelwidget
         QGridLayout.__init__(self)
-        self.status = CLabel('OFF')
+        self.doAbort = False
+        self.stateWidget = CLabel('OFF')
         self.startButton = QPushButton("START")
         self.stopButton = QPushButton("STOP")
         self.abortButton = AbortButton()
 
-        self.delayBar = DelayBar(panelwidget=panelwidget)
-        self.delayBar.setFixedSize(160, 28)
+        self.delayBar = DelayBar(self)
 
         self.delay = QSpinBox()
         self.delay.setValue(0)
         self.delay.setRange(0, 24 * 60 * 10)
 
-        self.startButton.clicked.connect(self.startSequence)
-        self.stopButton.clicked.connect(self.stopSequence)
-        self.abortButton.clicked.connect(self.abortSequence)
+        self.startButton.clicked.connect(self.start)
+        self.stopButton.clicked.connect(self.stop)
+        self.abortButton.clicked.connect(self.abort)
 
         self.addWidget(Label("Delay (min)"), 0, 1)
-        self.addWidget(self.status, 1, 0)
+        self.addWidget(self.stateWidget, 1, 0)
         self.addWidget(self.delay, 1, 1)
         self.addWidget(self.delayBar, 0, 2, 1, 2)
 
@@ -90,54 +116,80 @@ class Scheduler(QGridLayout):
         self.addWidget(self.stopButton, 1, 2)
         self.addWidget(self.abortButton, 1, 3)
 
-        self.stopButton.setVisible(False)
-
-    @property
-    def onGoing(self):
-        return self.stopButton.isVisible()
+        self.setState('off')
 
     @property
     def validated(self):
         return [cmdRow for cmdRow in self.panelwidget.cmdRows if cmdRow.isValid]
 
-    def startSequence(self):
-        self.startButton.setVisible(False)
-        self.stopButton.setVisible(True)
+    @property
+    def activated(self):
+        return [cmdRow for cmdRow in self.panelwidget.cmdRows if cmdRow.isActive]
+
+    def setState(self, state):
+        self.state = state
+        self.stateWidget.setText(state.upper())
+
+        self.startButton.setVisible(self.state == 'off')
+        self.stopButton.setVisible(self.state in ['waiting', 'processing'])
+        self.abortButton.setVisible(bool(len(self.activated)))
+
+    def start(self):
+        if self.activated:
+            self.activate()
+            return
+
+        if not len(self.validated):
+            self.panelwidget.mwindow.critical('No valid sequence has been scheduled...')
+            return
 
         delay = self.delay.value() * 60
         delay = Scheduler.delayCmd if not delay else delay
 
-        self.startingSoon(delay=delay)
+        msgBox = StartMessage(self.delayBar.startDate(delay), parent=self.panelwidget)
 
-    def startingSoon(self, delay):
-        if len(self.validated):
-            self.status.setText('WAITING')
-            self.delayBar.start(delay=delay)
-        else:
-            self.stopSequence()
+        if msgBox.exec() != QMessageBox.Ok:
+            return
 
-    def activateSequence(self):
-        isActive = True in [cmdRow.isActive for cmdRow in self.validated]
-        self.status.setText('PROCESSING')
+        self.nextSVP(delay=delay)
 
-        for cmdRow in self.validated:
-            if not isActive:
-                cmdRow.setActive()
-                isActive = True
-                break
+    def activate(self):
+        if self.activated:
+            self.setState('processing')
+            return
 
-        if not isActive:
-            self.stopSequence()
+        try:
+            self.validated[0].setActive()
+            self.setState('processing')
+        except IndexError:
+            self.stop(safetyCheck=False)
 
-    def stopSequence(self):
-        self.status.setText('OFF')
-        self.startButton.setVisible(True)
-        self.stopButton.setVisible(False)
+    def nextSVP(self, delay=None):
+        if not len(self.validated) or self.doAbort:
+            self.stop(safetyCheck=False)
+            self.doAbort = False
+            return
 
-    def nextPlease(self):
-        if self.onGoing:
-            self.startingSoon(delay=Scheduler.delayCmd)
+        delay = Scheduler.delayCmd if delay is None else delay
+        self.setState('waiting')
+        self.delayBar.start(delay=delay)
 
-    def abortSequence(self):
-        self.panelwidget.sendCommand(fullCmd='spsait abort', timeLim=5)
-        self.stopSequence()
+    def stop(self, safetyCheck=True):
+        if safetyCheck:
+            msgBox = StopMessage(parent=self.panelwidget)
+            if msgBox.exec() != QMessageBox.Ok:
+                return
+
+        self.setState('off')
+
+    def abort(self):
+        if not self.activated:
+            self.panelwidget.mwindow.critical('Nothing to abort here...')
+            return
+
+        msgBox = AbortMessage(parent=self.panelwidget)
+        if msgBox.exec() != QMessageBox.Ok:
+            return
+
+        self.panelwidget.sendCommand(fullCmd='iic sps abort', timeLim=10)
+        self.doAbort = True
