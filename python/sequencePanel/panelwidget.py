@@ -39,6 +39,7 @@ class PanelWidget(QWidget):
                             'W': 2,
                             'F': 3, '!': 4}
         self.printLevel = self.printLevels['I']
+        self.clipboard = None
         self.cmdRows = []
         self.mouseMove = MouseMove(0, 0)
 
@@ -170,16 +171,21 @@ class PanelWidget(QWidget):
                 cmdRows = yaml.load(cfgFile, Loader=yaml.FullLoader)
 
         except PermissionError as e:
-            self.mwindow.showError(str(e))
+            self.mwindow.critical(str(e))
             return
 
-        for i, kwargs in cmdRows.items():
-            self.add(CmdRow(self, **kwargs))
+        try:
+            for i, kwargs in cmdRows.items():
+                self.add(CmdRow(self, **kwargs))
+
+        except:
+            self.mwindow.critical('yaml file is badly formatted ...')
+            return
 
     def saveFile(self):
 
         if not self.cmdRows:
-            self.mwindow.showError('Your script is empty...')
+            self.mwindow.critical('Your script is empty...')
             return
 
         seq = dict([(i, cmdRow.info) for i, cmdRow in enumerate(self.cmdRows)])
@@ -193,7 +199,7 @@ class PanelWidget(QWidget):
                     yaml.dump(seq, savedFile)
 
         except PermissionError as e:
-            self.mwindow.showError(str(e))
+            self.mwindow.critical(str(e))
 
     def selectAll(self):
         self.sequenceTable.selectAll()
@@ -202,6 +208,9 @@ class PanelWidget(QWidget):
         self.clipboard = [cmdRow.info for cmdRow in cmdRows]
 
     def paste(self, ind):
+        if self.clipboard is None:
+            return
+
         newSeq = [CmdRow(self, **kwargs) for kwargs in self.clipboard]
         self.cmdRows[ind:ind] = newSeq
         self.updateTable()

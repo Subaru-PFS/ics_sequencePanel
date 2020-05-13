@@ -26,8 +26,8 @@ class SequencePanel(QMainWindow):
         self.cmdrName = name
         self.setWindowTitle(name)
 
-    def showError(self, error):
-        return QMessageBox.critical(self, 'Warning', error, QMessageBox.Ok, QMessageBox.Cancel)
+    def critical(self, message):
+        return QMessageBox.critical(self, 'Warning', message, QMessageBox.Ok, QMessageBox.Cancel)
 
     def closeEvent(self, QCloseEvent):
         self.reactor.callFromThread(self.reactor.stop)
