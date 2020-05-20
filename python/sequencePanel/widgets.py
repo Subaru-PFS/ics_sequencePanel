@@ -93,8 +93,8 @@ class CmdLogArea(QPlainTextEdit):
                  'i': '#FFFFFF',
                  ':': '#7FFF00',
                  'w': '#ffab50',
-                 'f':'#FF0000',
-                 '!':'#FF0000',}
+                 'f': '#FF0000',
+                 '!': '#FF0000', }
 
     def __init__(self):
         QPlainTextEdit.__init__(self)

@@ -41,7 +41,6 @@ class Table(QTableWidget):
         nbRows = sum([cmdRow.nbRows for cmdRow in self.cmdRows])
 
         QTableWidget.__init__(self, nbRows, len(Table.colnames))
-        self.setMouseTracking(True)
 
         self.setHorizontalHeaderLabels(Table.colnames)
 
@@ -172,10 +171,6 @@ class Table(QTableWidget):
         if QKeyEvent.key() == Qt.Key_Control:
             self.controlKey = False
 
-    def mouseMoveEvent(self, event):
-        QTableWidget.mouseMoveEvent(self, event)
-        self.panelwidget.mouseMove.checkPosition(x=event.x() + 10, y=event.y() + 54)
-
 
 class VScrollBar(QScrollBar):
     def __init__(self, tablewidget):
@@ -190,15 +185,6 @@ class VScrollBar(QScrollBar):
         if self.scrollValue:
             value = min(self.scrollValue, self.maximum())
             self.setValue(value)
-
             self.scrollValue = False
-
-        if self.panelwidget.currInd and self.panelwidget.mouseMove.userInactive:
-            currInd = self.panelwidget.currInd - 1
-            topHeight = sum([cmdRow.nbRows for cmdRow in self.panelwidget.cmdRows[:currInd]])
-            barSize = a * self.parent().height() + b
-            center = topHeight + self.panelwidget.cmdRows[currInd].height
-            value = round(center - barSize / 2)
-            self.setValue(value)
 
         QScrollBar.paintEvent(self, event)

@@ -1,11 +1,11 @@
 __author__ = 'alefur'
 
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox, QGroupBox
+from pfs.utils.opdb import opDB
 from sequencePanel.sequence import CmdRow
+from sequencePanel.utils import stripQuotes, stripField
 from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
 
-
-from pfs.utils.opdb import opDB
 
 class CmdStr(LineEdit):
     def __init__(self, sequence, *args, **kwargs):
@@ -209,9 +209,15 @@ class Previous(SequenceLayout):
             self.seqtypeWidget.setText(seqtype)
             self.name.setText(name)
             self.comments.setText(comments)
-            self.cmdStr.setText(cmdStr)
+            self.cmdStr.setText(self.reformat(cmdStr))
         except:
             pass
+
+    def reformat(self, cmdStr):
+        if 'iic' in cmdStr:
+            return cmdStr
+
+        return f"iic {stripQuotes(stripField(stripField(cmdStr, 'name='), 'comments='))}"
 
 
 class Dialog(QDialog):

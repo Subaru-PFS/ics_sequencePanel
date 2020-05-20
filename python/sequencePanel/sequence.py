@@ -4,10 +4,9 @@ from functools import partial
 
 import numpy as np
 from PyQt5.QtWidgets import QCheckBox
+from sequencePanel.utils import camMask
 from sequencePanel.widgets import IconButton, EyeButton
 
-def cleanStr(text):
-    return text.replace('"', "'").strip()
 
 class SubCommand(object):
     def __init__(self, subId, cmdStr, didFail, returnStr):
@@ -16,7 +15,7 @@ class SubCommand(object):
         self.anomalies = ''
         self.returnStr = returnStr
 
-        self.visit = self.setVisit(returnStr)
+        self.visit, self.cams = self.decode(returnStr)
         self.setStatus(int(didFail))
 
     @property
@@ -46,14 +45,16 @@ class SubCommand(object):
         elif didFail == 1:
             self.status = 'failed'
 
-    def setVisit(self, returnStr):
-        try:
-            visit = int(returnStr.replace("'", "").split('visit=')[1])
-            self.returnStr = ''
-        except IndexError:
-            visit = -1
+    def decode(self, returnStr):
 
-        return visit
+        try:
+            __, keys = returnStr.split('fileids=')
+            visit, __, mask = keys.split(',')
+            cams = camMask(mask)
+        except ValueError:
+            visit, cams = -1, None
+
+        return visit, cams
 
 
 class CmdRow(object):
@@ -229,7 +230,6 @@ class CmdRow(object):
         self.comments = comments
         self.cmdStr = cmdStr
         self.buttonEye.setEnabled(True)
-        # self.showSubcommands(bool=True)
 
         self.panelwidget.updateTable()
 

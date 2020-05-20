@@ -1,7 +1,6 @@
 __author__ = 'alefur'
 
 import os
-import time
 
 import numpy as np
 import yaml
@@ -13,25 +12,6 @@ from sequencePanel.table import Table
 from sequencePanel.widgets import CmdLogArea
 
 
-class MouseMove(object):
-    timeout = 5
-
-    def __init__(self, x, y):
-        self.t = time.time()
-        self.x = x
-        self.y = y
-
-    @property
-    def userInactive(self):
-        return (time.time() - self.t) > MouseMove.timeout
-
-    def checkPosition(self, x, y):
-        if not (self.x == x and self.y == y):
-            self.x = x
-            self.y = y
-            self.t = time.time()
-
-
 class PanelWidget(QWidget):
     def __init__(self, mwindow):
         self.printLevels = {'D': 0, '>': 0,
@@ -41,7 +21,6 @@ class PanelWidget(QWidget):
         self.printLevel = self.printLevels['I']
         self.clipboard = None
         self.cmdRows = []
-        self.mouseMove = MouseMove(0, 0)
 
         QWidget.__init__(self)
         self.mwindow = mwindow
@@ -226,10 +205,6 @@ class PanelWidget(QWidget):
     def clearDone(self):
         cmdRows = [cmdRow for cmdRow in self.cmdRows if cmdRow.status in ['finished', 'failed']]
         self.remove(cmdRows)
-
-    def mouseMoveEvent(self, event):
-        self.mouseMove.checkPosition(x=event.x(), y=event.y())
-        QWidget.mouseMoveEvent(self, event)
 
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)
