@@ -1,7 +1,6 @@
 __author__ = 'alefur'
 
 import os
-import time
 
 import numpy as np
 import yaml
@@ -11,26 +10,7 @@ from sequencePanel.scheduler import Scheduler
 from sequencePanel.sequence import CmdRow
 from sequencePanel.table import Table
 from sequencePanel.widgets import CmdLogArea
-
-
-class MouseMove(object):
-    timeout = 5
-
-    def __init__(self, x, y):
-        self.t = time.time()
-        self.x = x
-        self.y = y
-
-    @property
-    def userInactive(self):
-        return (time.time() - self.t) > MouseMove.timeout
-
-    def checkPosition(self, x, y):
-        if not (self.x == x and self.y == y):
-            self.x = x
-            self.y = y
-            self.t = time.time()
-
+from sequencePanel.annotate import Annotate
 
 class PanelWidget(QWidget):
     def __init__(self, mwindow):
@@ -41,7 +21,6 @@ class PanelWidget(QWidget):
         self.printLevel = self.printLevels['I']
         self.clipboard = None
         self.cmdRows = []
-        self.mouseMove = MouseMove(0, 0)
 
         QWidget.__init__(self)
         self.mwindow = mwindow
@@ -83,7 +62,10 @@ class PanelWidget(QWidget):
             return np.argmax(areActive) + 1
 
     def addSequence(self):
-        d = Dialog(self)
+        return Dialog(self)
+
+    def annotate(self):
+        return Annotate(self)
 
     def add(self, cmdRow):
         self.cmdRows.append(cmdRow)
@@ -151,6 +133,9 @@ class PanelWidget(QWidget):
         clearDone = QAction('Clear Done', self)
         clearDone.triggered.connect(self.clearDone)
 
+        annotate = QAction('Annotate', self)
+        annotate.triggered.connect(self.annotate)
+
         fileMenu.addAction(loadSequence)
         fileMenu.addAction(saveSequence)
 
@@ -158,6 +143,7 @@ class PanelWidget(QWidget):
 
         editMenu.addAction(selectAll)
         editMenu.addAction(clearDone)
+        editMenu.addAction(annotate)
 
         return menubar
 
@@ -226,10 +212,6 @@ class PanelWidget(QWidget):
     def clearDone(self):
         cmdRows = [cmdRow for cmdRow in self.cmdRows if cmdRow.status in ['finished', 'failed']]
         self.remove(cmdRows)
-
-    def mouseMoveEvent(self, event):
-        self.mouseMove.checkPosition(x=event.x(), y=event.y())
-        QWidget.mouseMoveEvent(self, event)
 
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)

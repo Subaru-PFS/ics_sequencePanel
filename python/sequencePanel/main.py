@@ -52,7 +52,7 @@ def main():
 
     import miniActor
 
-    actor = miniActor.connectActor(['hub'])
+    actor = miniActor.connectActor([])
 
     try:
         ex = SequencePanel(reactor,
