@@ -10,7 +10,7 @@ from sequencePanel.scheduler import Scheduler
 from sequencePanel.sequence import CmdRow
 from sequencePanel.table import Table
 from sequencePanel.widgets import CmdLogArea
-
+from sequencePanel.annotate import Annotate
 
 class PanelWidget(QWidget):
     def __init__(self, mwindow):
@@ -62,7 +62,10 @@ class PanelWidget(QWidget):
             return np.argmax(areActive) + 1
 
     def addSequence(self):
-        d = Dialog(self)
+        return Dialog(self)
+
+    def annotate(self):
+        return Annotate(self)
 
     def add(self, cmdRow):
         self.cmdRows.append(cmdRow)
@@ -130,6 +133,9 @@ class PanelWidget(QWidget):
         clearDone = QAction('Clear Done', self)
         clearDone.triggered.connect(self.clearDone)
 
+        annotate = QAction('Annotate', self)
+        annotate.triggered.connect(self.annotate)
+
         fileMenu.addAction(loadSequence)
         fileMenu.addAction(saveSequence)
 
@@ -137,6 +143,7 @@ class PanelWidget(QWidget):
 
         editMenu.addAction(selectAll)
         editMenu.addAction(clearDone)
+        editMenu.addAction(annotate)
 
         return menubar
 

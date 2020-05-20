@@ -1,6 +1,22 @@
 import re
 
+import pandas as pd
+from pfs.utils.opdb import opDB
 from pfs.utils.spectroIds import SpectroIds
+
+
+def visitsFromSet(visit_set_id):
+    return opDB.fetchall(f'select pfs_visit_id from visit_set where visit_set_id={visit_set_id}')
+
+
+def spsExposure(visits):
+    dfs = []
+    for visit, in visits:
+        exposures = opDB.fetchall(
+            f'select sps_exposure.pfs_visit_id,exp_type,sps_module_id,arm,sps_exposure.sps_camera_id from sps_exposure inner join sps_visit on sps_exposure.pfs_visit_id=sps_visit.pfs_visit_id inner join sps_camera on sps_exposure.sps_camera_id = sps_camera.sps_camera_id where sps_exposure.pfs_visit_id={visit}')
+        dfs.append(pd.DataFrame(exposures, columns=['visit', 'exptype', 'specNum', 'arm', 'camId']))
+
+    return pd.concat(dfs, ignore_index=True)
 
 
 def stripQuotes(txt):

@@ -4,7 +4,6 @@ from functools import partial
 
 import numpy as np
 from PyQt5.QtWidgets import QCheckBox
-from sequencePanel.utils import camMask
 from sequencePanel.widgets import IconButton, EyeButton
 
 
@@ -15,7 +14,7 @@ class SubCommand(object):
         self.anomalies = ''
         self.returnStr = returnStr
 
-        self.visit, self.cams = self.decode(returnStr)
+        self.visit = self.decode(returnStr)
         self.setStatus(int(didFail))
 
     @property
@@ -46,15 +45,13 @@ class SubCommand(object):
             self.status = 'failed'
 
     def decode(self, returnStr):
-
         try:
             __, keys = returnStr.split('fileids=')
             visit, __, mask = keys.split(',')
-            cams = camMask(mask)
         except ValueError:
-            visit, cams = -1, None
+            return -1
 
-        return visit, cams
+        return int(visit)
 
 
 class CmdRow(object):

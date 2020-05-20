@@ -40,6 +40,7 @@ class OptionalArgs(QGroupBox):
         QGroupBox.__init__(self)
         self.setTitle('Optional Arguments')
         self.grid = QGridLayout()
+        self.grid.setSpacing(2)
         self.fields = []
 
         for i, key in enumerate(options):
@@ -240,7 +241,7 @@ class Dialog(QDialog):
 
         vbox = QVBoxLayout()
         self.grid = QGridLayout()
-        self.grid.setSpacing(10)
+        self.grid.setSpacing(2)
 
         self.comboLabel = QLabel('Sequence type')
 
