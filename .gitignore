@@ -1,3 +1,4 @@
 .idea
 *.pickle
 python/sequencePanel/__pycache__/
+python/sequencePanel/utils/__pycache__/

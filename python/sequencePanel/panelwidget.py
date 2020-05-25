@@ -3,13 +3,14 @@ __author__ = 'alefur'
 import os
 
 import numpy as np
+from functools import partial
 import yaml
-from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, QFileDialog
+from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, QFileDialog, QVBoxLayout
 from sequencePanel.dialog import Dialog
 from sequencePanel.scheduler import Scheduler
 from sequencePanel.sequence import CmdRow
 from sequencePanel.table import Table
-from sequencePanel.widgets import CmdLogArea
+from sequencePanel.widgets import LogLayout
 from sequencePanel.annotate import Annotate
 
 class PanelWidget(QWidget):
@@ -25,25 +26,18 @@ class PanelWidget(QWidget):
         QWidget.__init__(self)
         self.mwindow = mwindow
 
-        self.mainLayout = QGridLayout()
+        self.mainLayout = QVBoxLayout()
         self.scheduler = Scheduler(self)
-        self.logLayout = QGridLayout()
+        self.logLayout = LogLayout(self)
 
         self.menuBar = self.createMenu()
         self.sequenceTable = Table(self)
 
-        self.commandLine = QLineEdit()
-        self.commandLine.returnPressed.connect(self.sendCmdLine)
+        self.mainLayout.addWidget(self.menuBar)
+        self.mainLayout.addWidget(self.sequenceTable)
+        self.mainLayout.addLayout(self.scheduler)
 
-        self.logArea = CmdLogArea()
-        self.logLayout.addWidget(self.logArea, 0, 0, 10, 1)
-        self.logLayout.addWidget(self.commandLine, 10, 0, 1, 1)
-
-        self.mainLayout.addWidget(self.menuBar, 0, 0, 1, 10)
-        self.mainLayout.addWidget(self.sequenceTable, 1, 0, 35, 10)
-        self.mainLayout.addLayout(self.scheduler, 36, 0, 4, 4)
-
-        self.mainLayout.addLayout(self.logLayout, 40, 0, 25, 10)
+        self.mainLayout.addLayout(self.logLayout)
 
         self.setMinimumWidth(920)
         self.setLayout(self.mainLayout)
@@ -85,15 +79,13 @@ class PanelWidget(QWidget):
         self.mainLayout.removeWidget(self.sequenceTable)
 
         self.sequenceTable = Table(self)
-        self.mainLayout.addWidget(self.sequenceTable, 1, 0, 35, 10)
+        self.mainLayout.insertWidget(1, self.sequenceTable)
 
-        self.sequenceTable.verticalScrollBar().setScrollValue(value=scrollvalue)
-
-    def sendCmdLine(self):
-        self.sendCommand(fullCmd=self.commandLine.text())
+        if scrollvalue:
+            self.sequenceTable.verticalScrollBar().setScrollValue(value=scrollvalue)
 
     def sendCommand(self, fullCmd, timeLim=300, callFunc=None):
-        callFunc = self.logArea.printResponse if callFunc is None else callFunc
+        callFunc = self.logLayout.logArea.printResponse if callFunc is None else callFunc
 
         import opscore.actor.keyvar as keyvar
 
@@ -102,7 +94,7 @@ class PanelWidget(QWidget):
         except ValueError:
             return
 
-        self.logArea.newLine('cmdIn=%s %s' % (actor, cmdStr))
+        self.logLayout.logArea.newLine('cmdIn=%s %s' % (actor, cmdStr))
         self.actor.cmdr.bgCall(**dict(actor=actor,
                                       cmdStr=cmdStr,
                                       timeLim=timeLim,
@@ -216,3 +208,7 @@ class PanelWidget(QWidget):
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)
         self.sequenceTable.resizeEvent(event)
+
+    def adjustSize(self):
+        QWidget.adjustSize(self)
+        self.mwindow.adjustSize()

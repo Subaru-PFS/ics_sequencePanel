@@ -2,11 +2,12 @@ __author__ = 'alefur'
 
 import os
 from datetime import datetime as dt
+from functools import partial
 
 import sequencePanel
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QTextCursor, QIcon, QPixmap
-from PyQt5.QtWidgets import QPlainTextEdit, QLabel, QComboBox, QLineEdit, QProgressBar, QPushButton, QSpinBox
+from PyQt5.QtGui import QPixmap, QIcon, QFont, QTextCursor
+from PyQt5.QtWidgets import QPushButton, QSpinBox, QComboBox, QLineEdit, QLabel, QPlainTextEdit, QProgressBar,QGridLayout,QVBoxLayout
 
 imgpath = os.path.abspath(os.path.join(os.path.dirname(sequencePanel.__file__), '../..', 'img'))
 
@@ -43,6 +44,12 @@ class SpinBox(QSpinBox):
     def __init__(self, *args, **kwargs):
         QSpinBox.__init__(self, *args, **kwargs)
         self.setStyleSheet("QSpinBox { font: 8pt;}")
+
+
+class PushButton(QPushButton):
+    def __init__(self, label=''):
+        QPushButton.__init__(self, label)
+        self.setStyleSheet("QPushButton {font: 8pt; }")
 
 
 class CLabel(QLabel):
@@ -83,6 +90,29 @@ class CLabel(QLabel):
         QLabel.setText(self, txt)
 
 
+class LogLayout(QVBoxLayout):
+    def __init__(self, panelwidget):
+        QGridLayout.__init__(self)
+        self.panelwidget = panelwidget
+        self.logArea = CmdLogArea()
+
+        self.showButton = PushButton('Show Logs')
+        self.hideButton = PushButton('Hide Logs')
+        self.showButton.clicked.connect(partial(self.show, True))
+        self.hideButton.clicked.connect(partial(self.show, False))
+
+        self.panelwidget.scheduler.addWidget(self.showButton, 1, 10)
+        self.panelwidget.scheduler.addWidget(self.hideButton, 1, 11)
+        self.addWidget(self.logArea)
+        self.show(False)
+
+    def show(self, bool):
+        self.showButton.setVisible(not bool)
+        self.hideButton.setVisible(bool)
+        self.logArea.setVisible(bool)
+        self.panelwidget.adjustSize()
+
+
 class CmdLogArea(QPlainTextEdit):
     printLevels = {'D': 0, '>': 0,
                    'I': 1, ':': 1,
@@ -105,6 +135,7 @@ class CmdLogArea(QPlainTextEdit):
 
         self.setStyleSheet("background-color: black;color:white;")
         self.setFont(QFont("Monospace", 8))
+        self.setMaximumHeight(250)
 
     def newLine(self, newLine, code=None):
         code = 'i' if code is None else code

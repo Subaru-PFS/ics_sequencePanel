@@ -188,7 +188,7 @@ class CmdRow(object):
         else:
             self.updateInfo(reply=reply)
 
-        self.panelwidget.logArea.printResponse(resp=resp)
+        self.panelwidget.logLayout.logArea.printResponse(resp=resp)
 
     def updateInfo(self, reply):
 

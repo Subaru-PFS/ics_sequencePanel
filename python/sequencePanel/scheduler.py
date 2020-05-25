@@ -4,8 +4,8 @@ from datetime import datetime as dt
 from datetime import timedelta
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QSpinBox, QProgressBar, QMessageBox
-from sequencePanel.widgets import CLabel, Label
+from PyQt5.QtWidgets import QGridLayout, QSpinBox, QProgressBar, QMessageBox
+from sequencePanel.widgets import CLabel, Label, PushButton
 
 
 class SafetyCheck(QMessageBox):
@@ -36,13 +36,13 @@ class StartMessage(SafetyCheck):
         self.setText(f'Do you want to schedule your data at {startdate} ?')
 
 
-class AbortButton(QPushButton):
+class AbortButton(PushButton):
     def __init__(self):
-        QPushButton.__init__(self, 'ABORT')
+        PushButton.__init__(self, 'ABORT')
         self.setColor('red')
 
     def setColor(self, background, color="white"):
-        self.setStyleSheet("QPushButton {font: 9pt; background-color: %s;color : %s ;}" % (background, color))
+        self.setStyleSheet("PushButton {font: 8pt; background-color: %s;color : %s ;}" % (background, color))
 
 
 class DelayBar(QProgressBar):
@@ -93,8 +93,8 @@ class Scheduler(QGridLayout):
         QGridLayout.__init__(self)
         self.doAbort = False
         self.stateWidget = CLabel('OFF')
-        self.startButton = QPushButton("START")
-        self.stopButton = QPushButton("STOP")
+        self.startButton = PushButton("START")
+        self.stopButton = PushButton("STOP")
         self.abortButton = AbortButton()
 
         self.delayBar = DelayBar(self)

@@ -243,7 +243,7 @@ class Dialog(QDialog):
         self.grid = QGridLayout()
         self.grid.setSpacing(2)
 
-        self.comboLabel = QLabel('Sequence type')
+        self.comboLabel = Label('Sequence type')
 
         self.comboType = ComboBox()
         self.comboType.addItems(list(self.availableSeq.keys()))
