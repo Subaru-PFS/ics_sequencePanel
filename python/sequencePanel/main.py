@@ -21,7 +21,7 @@ class SequencePanel(QMainWindow):
         self.setCentralWidget(PanelWidget(self))
 
         self.show()
-        self.resize(920,300)
+        self.resize(920, 300)
 
     def setName(self, name):
         self.cmdrName = name

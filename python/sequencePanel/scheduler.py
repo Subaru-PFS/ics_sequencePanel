@@ -181,6 +181,7 @@ class Scheduler(QGridLayout):
                 return
 
         self.setState('off')
+        self.delayBar.stop()
 
     def abort(self):
         if not self.activated:

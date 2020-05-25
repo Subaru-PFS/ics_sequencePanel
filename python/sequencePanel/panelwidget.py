@@ -3,15 +3,15 @@ __author__ = 'alefur'
 import os
 
 import numpy as np
-from functools import partial
 import yaml
-from PyQt5.QtWidgets import QGridLayout, QWidget, QLineEdit, QAction, QMenuBar, QFileDialog, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QAction, QMenuBar, QFileDialog, QVBoxLayout
+from sequencePanel.annotate import Annotate
 from sequencePanel.dialog import Dialog
 from sequencePanel.scheduler import Scheduler
 from sequencePanel.sequence import CmdRow
 from sequencePanel.table import Table
 from sequencePanel.widgets import LogLayout
-from sequencePanel.annotate import Annotate
+
 
 class PanelWidget(QWidget):
     def __init__(self, mwindow):
@@ -41,7 +41,6 @@ class PanelWidget(QWidget):
 
         self.setMinimumWidth(920)
         self.setLayout(self.mainLayout)
-        self.setMouseTracking(True)
 
     @property
     def actor(self):
@@ -209,6 +208,10 @@ class PanelWidget(QWidget):
         QWidget.resizeEvent(self, event)
         self.sequenceTable.resizeEvent(event)
 
-    def adjustSize(self):
+    def adjust(self, width, height, scrollValue):
         QWidget.adjustSize(self)
         self.mwindow.adjustSize()
+        self.mwindow.resize(width, height)
+
+        if scrollValue:
+            self.sequenceTable.verticalScrollBar().setScrollValue(value=scrollValue)

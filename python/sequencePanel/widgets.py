@@ -7,7 +7,8 @@ from functools import partial
 import sequencePanel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QTextCursor
-from PyQt5.QtWidgets import QPushButton, QSpinBox, QComboBox, QLineEdit, QLabel, QPlainTextEdit, QProgressBar,QGridLayout,QVBoxLayout
+from PyQt5.QtWidgets import QPushButton, QSpinBox, QComboBox, QLineEdit, QLabel, QPlainTextEdit, QProgressBar, \
+    QGridLayout, QVBoxLayout
 
 imgpath = os.path.abspath(os.path.join(os.path.dirname(sequencePanel.__file__), '../..', 'img'))
 
@@ -107,10 +108,18 @@ class LogLayout(QVBoxLayout):
         self.show(False)
 
     def show(self, bool):
+        width, height = self.panelwidget.width(), self.panelwidget.height()
+        try:
+            scrollValue = self.panelwidget.sequenceTable.verticalScrollBar().value()
+        except:
+            scrollValue = 0
+
+        offset = self.logArea.fixedHeight + 5
+        height += (offset if bool else -offset)
         self.showButton.setVisible(not bool)
         self.hideButton.setVisible(bool)
         self.logArea.setVisible(bool)
-        self.panelwidget.adjustSize()
+        self.panelwidget.adjust(width, height, scrollValue)
 
 
 class CmdLogArea(QPlainTextEdit):
@@ -125,6 +134,7 @@ class CmdLogArea(QPlainTextEdit):
                  'w': '#ffab50',
                  'f': '#FF0000',
                  '!': '#FF0000', }
+    fixedHeight = 190
 
     def __init__(self):
         QPlainTextEdit.__init__(self)
@@ -135,7 +145,7 @@ class CmdLogArea(QPlainTextEdit):
 
         self.setStyleSheet("background-color: black;color:white;")
         self.setFont(QFont("Monospace", 8))
-        self.setMaximumHeight(250)
+        self.setFixedHeight(CmdLogArea.fixedHeight)
 
     def newLine(self, newLine, code=None):
         code = 'i' if code is None else code
