@@ -10,7 +10,7 @@ from sequencePanel.dialog import Dialog
 from sequencePanel.scheduler import Scheduler
 from sequencePanel.sequence import CmdRow
 from sequencePanel.table import Table
-from sequencePanel.widgets import LogLayout
+from sequencePanel.logarea import LogLayout
 
 
 class PanelWidget(QWidget):
