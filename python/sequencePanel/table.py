@@ -147,7 +147,8 @@ class Table(QTableWidget):
             if QKeyEvent.key() == Qt.Key_C and self.controlKey:
 
                 cmdRows = list(set([item.cmdRow for item in self.selectedItems()]))
-                self.panelwidget.copy(cmdRows)
+                sortedRows = sorted([(self.cmdRows.index(cmdRow), cmdRow) for cmdRow in cmdRows], key=lambda t: t[0])
+                self.panelwidget.copy([cmdRow for i, cmdRow in sortedRows])
 
                 for range in self.selectedRanges():
                     self.setRangeSelected(range, False)
