@@ -7,7 +7,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
-from panelwidget import PanelWidget
+from sequencePanel.panelwidget import PanelWidget
 
 
 class SequencePanel(QMainWindow):
@@ -51,7 +51,7 @@ def main():
     qt5reactor.install()
     from twisted.internet import reactor
 
-    import miniActor
+    import sequencePanel.miniActor as miniActor
 
     actor = miniActor.connectActor([])
 
