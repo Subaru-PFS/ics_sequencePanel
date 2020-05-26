@@ -169,6 +169,11 @@ class GenericCmd(SequenceLayout):
         self.comments.setDisabled(True)
 
 
+class Custom(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'custom', 'iic custom', options=['head', 'tail'])
+
+
 class Previous(SequenceLayout):
     def __init__(self):
         QGridLayout.__init__(self)
@@ -236,6 +241,7 @@ class Dialog(QDialog):
             ditherArcs=DitherArcs,
             defocus=Defocus,
             previous=Previous,
+            custom=Custom,
             command=GenericCmd,
         )
 
