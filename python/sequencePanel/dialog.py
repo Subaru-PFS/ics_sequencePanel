@@ -1,7 +1,7 @@
 __author__ = 'alefur'
 
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox, QGroupBox
-from pfs.utils.opdb import opDB
+from opdb import utils, opdb
 from sequencePanel.sequence import CmdRow
 from sequencePanel.utils import stripQuotes, stripField
 from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
@@ -199,7 +199,8 @@ class Previous(SequenceLayout):
         self.addWidget(Label('cmdStr'), 4, 0)
         self.addWidget(self.cmdStr, 4, 1)
 
-        max_visit_set_id, = opDB.fetchone('select max(visit_set_id) from sps_sequence')
+        df = utils.fetch_query(opdb.OpDB.url, 'select max(visit_set_id) from sps_sequence')
+        max_visit_set_id, = df.loc[0].values
         self.visitSetId.setRange(1, max_visit_set_id)
         self.visitSetId.valueChanged.connect(self.load)
         self.visitSetId.setValue(max_visit_set_id)
@@ -211,7 +212,8 @@ class Previous(SequenceLayout):
     def load(self):
         query = f'select sequence_type, name, comments, cmd_str from sps_sequence where visit_set_id={self.visitSetId.value()}'
         try:
-            seqtype, name, comments, cmdStr = opDB.fetchone(query)
+            df = utils.fetch_query(opdb.OpDB.url, query)
+            seqtype, name, comments, cmdStr = df.loc[0].values
             self.seqtypeWidget.setText(seqtype)
             self.name.setText(name)
             self.comments.setText(comments)
