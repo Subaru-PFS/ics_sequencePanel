@@ -183,6 +183,7 @@ class Previous(SequenceLayout):
         self.name = LineEdit('')
         self.comments = LineEdit('')
         self.cmdStr = LineEdit('')
+        self.cmdStatus = LineEdit('')
 
         self.addWidget(Label('visit_set_id'), 0, 0)
         self.addWidget(self.visitSetId, 0, 1)
@@ -199,6 +200,9 @@ class Previous(SequenceLayout):
         self.addWidget(Label('cmdStr'), 4, 0)
         self.addWidget(self.cmdStr, 4, 1)
 
+        self.addWidget(Label('status'), 5, 0)
+        self.addWidget(self.cmdStatus, 5, 1)
+
         df = utils.fetch_query(opdb.OpDB.url, 'select max(visit_set_id) from sps_sequence')
         max_visit_set_id, = df.loc[0].values
         self.visitSetId.setRange(1, max_visit_set_id)
@@ -210,14 +214,16 @@ class Previous(SequenceLayout):
         return self.seqtypeWidget.text()
 
     def load(self):
-        query = f'select sequence_type, name, comments, cmd_str from sps_sequence where visit_set_id={self.visitSetId.value()}'
+        query = f'select sequence_type, name, comments, cmd_str, status from sps_sequence where visit_set_id={self.visitSetId.value()}'
         try:
             df = utils.fetch_query(opdb.OpDB.url, query)
-            seqtype, name, comments, cmdStr = df.loc[0].values
+            seqtype, name, comments, cmdStr, status = df.loc[0].values
             self.seqtypeWidget.setText(seqtype)
             self.name.setText(name)
             self.comments.setText(comments)
             self.cmdStr.setText(self.reformat(cmdStr))
+            self.cmdStatus.setText(status)
+
         except:
             pass
 
