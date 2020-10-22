@@ -1,8 +1,8 @@
 __author__ = 'alefur'
-
+import pandas as pd
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QDialogButtonBox, QTableWidget, QTableWidgetItem, QMessageBox
-from pfs.utils.opdb import opDB
+from opdb import utils, opdb
 from sequencePanel.dialog import Previous
 from sequencePanel.utils import visitsFromSet, spsExposure
 
@@ -103,11 +103,9 @@ class Exposures(QTableWidget):
         self.setRowCount(len(expList))
 
         for row, exp in expList.iterrows():
-            try:
-                dataFlag, notes = opDB.fetchone(
-                    f'select data_flag, notes from sps_annotation where pfs_visit_id={exp.visit} and sps_camera_id={exp.camId}')
-            except TypeError:
-                dataFlag, notes = '', ''
+            df = utils.fetch_query(opdb.OpDB.url,
+                                   f'select data_flag, notes from sps_annotation where pfs_visit_id={exp.visit} and sps_camera_id={exp.camId}')
+            dataFlag, notes = ('', '') if not len(df) else df.loc[0].values
 
             self.setItem(row, 0, LockedItem(exp.visit))
             self.setItem(row, 1, LockedItem(exp.exptype))
@@ -184,7 +182,7 @@ class Annotate(QDialog):
 
         for kwargs in notes:
             try:
-                opDB.insert('sps_annotation', **kwargs)
+                utils.insert(opdb.OpDB.url, 'sps_annotation',pd.DataFrame(kwargs, index=[0]))
             except Exception as e:
                 self.panelwidget.mwindow.critical(str(e))
 
