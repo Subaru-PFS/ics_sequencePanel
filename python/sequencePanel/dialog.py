@@ -6,6 +6,7 @@ from sequencePanel.sequence import CmdRow
 from sequencePanel.utils import stripQuotes, stripField
 from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
 
+dcbArcLamps = ['argon', 'neon', 'krypton', 'hgar']
 
 class CmdStr(LineEdit):
     def __init__(self, sequence, *args, **kwargs):
@@ -34,6 +35,26 @@ class EditableValue(LineEdit):
             else:
                 return f'{self.key}={text}'
 
+class ExposureTime(QGroupBox):
+    def __init__(self, sequence, lamps=None):
+        lamps = [] if lamps is None else lamps
+        QGroupBox.__init__(self)
+        self.setTitle('Exposure Time')
+        self.grid = QGridLayout()
+        self.grid.setSpacing(2)
+        self.exptime = EditableValue(sequence, 'exptime', '15.0')
+        self.fields = [self.exptime]
+        self.grid.addWidget(Label('exptime(shutter driven)'), 0, 0)
+        self.grid.addWidget(self.exptime, 0, 1)
+
+        for i, key in enumerate(lamps):
+            label, editableValue = Label(key), EditableValue(sequence, key, '')
+            self.fields.append(editableValue)
+            self.grid.addWidget(label, i+1, 0)
+            self.grid.addWidget(editableValue, i+1, 1)
+
+        self.setLayout(self.grid)
+
 
 class OptionalArgs(QGroupBox):
     def __init__(self, sequence, options):
@@ -53,7 +74,7 @@ class OptionalArgs(QGroupBox):
 
 
 class SequenceLayout(QGridLayout):
-    def __init__(self, seqtype, cmdHead, options=None, **kwargs):
+    def __init__(self, seqtype, cmdHead, lampExptime=None, options=None, **kwargs):
         self.seqtype = seqtype
         self.cmdHead = cmdHead
         QGridLayout.__init__(self)
@@ -69,6 +90,12 @@ class SequenceLayout(QGridLayout):
 
         self.addWidget(self.name, 0, 1)
         self.addWidget(self.comments, 1, 1)
+
+        if lampExptime is not None:
+            exptime = ExposureTime(self, lamps=lampExptime)
+            self.fields.extend(exptime.fields)
+            self.addWidget(exptime, self.rowCount(), 0, exptime.grid.rowCount(), 2)
+
 
         for i, (key, value) in enumerate(kwargs.items()):
             nRows = self.rowCount()
@@ -96,6 +123,47 @@ class SequenceLayout(QGridLayout):
                 widget.deleteLater()
 
 
+class MasterBiases(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'masterBiases', 'iic masterBiases', duplicate=15, options=['cam'])
+
+
+class MasterDarks(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'masterDarks', 'iic masterDarks', exptime=300, duplicate=15, options=['cam'])
+
+
+class DitheredFlats(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'ditheredFlats', 'iic ditheredFlats', pixels=0.3, nPositions=20,
+                                options=['exptime', 'halogen', 'duplicate', 'cam', 'warmingTime', 'switchOff'])
+
+        for field in self.fields:
+            if field.key == 'switchOff':
+                field.setText('False')
+
+class ScienceObject(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'scienceObject', 'iic scienceObject', exptime=15,
+                                options=['duplicate', 'cam'])
+
+class ScienceArc(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'scienceArc', 'iic scienceArc', lampExptime=dcbArcLamps,
+                                options=['duplicate', 'cam',
+                                         'switchOn', 'warmingTime', 'switchOff'])
+
+
+class ScienceTrace(SequenceLayout):
+    def __init__(self):
+        SequenceLayout.__init__(self, 'scienceTrace', 'iic scienceTrace',
+                                options=['exptime', 'halogen', 'duplicate', 'cam', 'warmingTime', 'switchOff'])
+
+        for field in self.fields:
+            if field.key == 'switchOff':
+                field.setText('False')
+
+
 class Biases(SequenceLayout):
     def __init__(self):
         SequenceLayout.__init__(self, 'biases', 'iic bias', options=['duplicate', 'cam', 'head', 'tail'])
@@ -108,58 +176,49 @@ class Darks(SequenceLayout):
 
 class Arcs(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'arcs', 'iic expose arc', exptime=15,
-                                options=['duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff',
-                                         'iisOn', 'iisOff', 'head', 'tail'])
+        SequenceLayout.__init__(self, 'arcs', 'iic expose arc',
+                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'cam', 'switchOn',
+                                         'warmingTime', 'switchOff', 'head', 'tail'])
 
 
 class Flats(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'flats', 'iic expose flat', exptime=15, options=['duplicate', 'cam',
-                                                                                       'warmingTime', 'switchOff',
-                                                                                       'head', 'tail'])
+        SequenceLayout.__init__(self, 'flats', 'iic expose flat',
+                                options=['exptime', 'halogen', 'duplicate', 'cam', 'warmingTime', 'switchOff',
+                                         'head', 'tail'])
         for field in self.fields:
             if field.key == 'switchOff':
                 field.setText('False')
 
-
 class SlitThroughFocus(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'slitThroughFocus', 'iic slit throughfocus', exptime=15, position='-5,5,11',
-                                options=['duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
+        SequenceLayout.__init__(self, 'slitThroughFocus', 'iic slit throughfocus', position='-5,5,11',
+                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'duplicate', 'cam',
+                                         'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
 
 
 class DetectorThroughFocus(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'detThroughFocus', 'iic detector throughfocus', exptime=15, position='0,300,11',
-                                options=['tilt', 'duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head',
-                                         'tail'])
+        SequenceLayout.__init__(self, 'detThroughFocus', 'iic detector throughfocus', position='0,300,11',
+                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'tilt', 'duplicate', 'cam',
+                                         'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
 
 
-class DitherFlats(SequenceLayout):
+class DitheredArcs(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'ditherFlats', 'iic dither flat', exptime=15, pixels=0.3, nPositions=20,
-                                options=['duplicate', 'cam', 'warmingTime', 'switchOff', 'head', 'tail'])
-
-        for field in self.fields:
-            if field.key == 'switchOff':
-                field.setText('False')
-
-
-class DitherArcs(SequenceLayout):
-    def __init__(self):
-        SequenceLayout.__init__(self, 'ditherArcs', 'iic dither arc', exptime=15, pixels=0.5,
-                                options=['doMinus', 'duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head',
-                                         'tail'])
+        SequenceLayout.__init__(self, 'ditheredArcs', 'iic dither arc', pixels=0.5,
+                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'doMinus', 'duplicate',
+                                         'cam', 'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
         for field in self.fields:
             if field.key == 'doMinus':
                 field.setText('False')
 
 
-class Defocus(SequenceLayout):
+class DefocusedArcs(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'defocus', 'iic defocus arc', exptime=15, position='-5,5,11',
-                                options=['duplicate', 'cam', 'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
+        SequenceLayout.__init__(self, 'defocusedArcs', 'iic defocus arc', position='-5,5,11',
+                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'duplicate', 'cam',
+                                         'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
 
 
 class GenericCmd(SequenceLayout):
@@ -239,15 +298,20 @@ class Dialog(QDialog):
         QDialog.__init__(self, panelwidget)
         self.panelwidget = panelwidget
         self.availableSeq = dict(
+            masterBiases=MasterBiases,
+            masterDarks=MasterDarks,
+            ditheredFlats=DitheredFlats,
+            scienceObject=ScienceObject,
+            scienceArc=ScienceArc,
+            scienceTrace=ScienceTrace,
             biases=Biases,
             darks=Darks,
             arcs=Arcs,
             flats=Flats,
             slitThroughFocus=SlitThroughFocus,
             detectorThroughFocus=DetectorThroughFocus,
-            ditherFlats=DitherFlats,
-            ditherArcs=DitherArcs,
-            defocus=Defocus,
+            ditheredArcs=DitheredArcs,
+            defocusedArcs=DefocusedArcs,
             previous=Previous,
             custom=Custom,
             command=GenericCmd,
