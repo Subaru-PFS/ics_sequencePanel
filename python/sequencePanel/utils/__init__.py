@@ -9,12 +9,15 @@ def visitsFromSet(visit_set_id):
 
 
 def spsExposure(visits):
-    columns = ['visit', 'exptype', 'specNum', 'arm', 'camId']
+    columns = ['visit', 'exptype','exptime',  'specNum', 'arm', 'camId']
     dfs = [pd.DataFrame([], columns=columns)]
     for visit, in visits:
         try:
-            exposures = opDB.fetchall(
-                f'select sps_exposure.pfs_visit_id,exp_type,sps_module_id,arm,sps_exposure.sps_camera_id from sps_exposure inner join sps_visit on sps_exposure.pfs_visit_id=sps_visit.pfs_visit_id inner join sps_camera on sps_exposure.sps_camera_id = sps_camera.sps_camera_id where sps_exposure.pfs_visit_id={visit}')
+            exposures = opDB.fetchall(f'select sps_exposure.pfs_visit_id,exp_type,exptime,sps_module_id,arm,'
+                                      f'sps_exposure.sps_camera_id from sps_exposure inner join sps_visit on '
+                                      f'sps_exposure.pfs_visit_id=sps_visit.pfs_visit_id inner join sps_camera '
+                                      f'on sps_exposure.sps_camera_id = sps_camera.sps_camera_id where '
+                                      f'sps_exposure.pfs_visit_id={visit}')
             dfs.append(pd.DataFrame(exposures, columns=columns))
 
         except ValueError:

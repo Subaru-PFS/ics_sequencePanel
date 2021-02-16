@@ -86,7 +86,7 @@ class SeqDescription(Previous):
 
 
 class Exposures(QTableWidget):
-    colnames = ['visit', 'expType', 'cam', 'dataFlag', 'notes']
+    colnames = ['visit', 'expType', 'expTime', 'cam', 'dataFlag', 'notes']
 
     def __init__(self, panelWidget):
         self.panelWidget = panelWidget
@@ -106,12 +106,13 @@ class Exposures(QTableWidget):
             df = utils.fetch_query(opdb.OpDB.url,
                                    f'select data_flag, notes from sps_annotation where pfs_visit_id={exp.visit} and sps_camera_id={exp.camId}')
             dataFlag, notes = ('', '') if not len(df) else df.loc[0].values
-
+            expTime = round(float(exp.exptime), 3)
             self.setItem(row, 0, LockedItem(exp.visit))
             self.setItem(row, 1, LockedItem(exp.exptype))
-            self.setItem(row, 2, LockedItem(f'{exp.arm}{exp.specNum}'))
-            self.setItem(row, 3, DataFlag(dataFlag))
-            self.setItem(row, 4, Notes(notes, visit=exp.visit, camId=exp.camId, dataFlag=self.item(row, 3)))
+            self.setItem(row, 2, LockedItem(str(expTime)))
+            self.setItem(row, 3, LockedItem(f'{exp.arm}{exp.specNum}'))
+            self.setItem(row, 4, DataFlag(dataFlag))
+            self.setItem(row, 5, Notes(notes, visit=exp.visit, camId=exp.camId, dataFlag=self.item(row, 3)))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
