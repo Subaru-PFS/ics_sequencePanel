@@ -207,7 +207,7 @@ class CmdRow(object):
 
         self.panelwidget.scheduler.nextSVP()
 
-    def setSequence(self, sequenceId, seqtype, cmdStr, name, comments):
+    def setSequence(self, sequenceId, seqtype, cmdStr, name, comments, *args):
 
         self.id = int(sequenceId)
         self.seqtype = seqtype

@@ -106,13 +106,14 @@ class Exposures(QTableWidget):
             df = utils.fetch_query(opdb.OpDB.url,
                                    f'select data_flag, notes from sps_annotation where pfs_visit_id={exp.visit} and sps_camera_id={exp.camId}')
             dataFlag, notes = ('', '') if not len(df) else df.loc[0].values
+            dataFlag = DataFlag(dataFlag)
             expTime = round(float(exp.exptime), 3)
             self.setItem(row, 0, LockedItem(exp.visit))
             self.setItem(row, 1, LockedItem(exp.exptype))
             self.setItem(row, 2, LockedItem(str(expTime)))
             self.setItem(row, 3, LockedItem(f'{exp.arm}{exp.specNum}'))
-            self.setItem(row, 4, DataFlag(dataFlag))
-            self.setItem(row, 5, Notes(notes, visit=exp.visit, camId=exp.camId, dataFlag=self.item(row, 3)))
+            self.setItem(row, 4, dataFlag)
+            self.setItem(row, 5, Notes(notes, visit=exp.visit, camId=exp.camId, dataFlag=dataFlag))
 
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -121,7 +122,7 @@ class Exposures(QTableWidget):
         if event is None:
             return self.remainingWidth
 
-        return event.size().width() - sum([self.columnWidth(j) for j in range(4)])
+        return event.size().width() - sum([self.columnWidth(j) for j in range(5)])
 
     def resizeEvent(self, event):
         if event is None and self.remainingWidth is None:
@@ -129,13 +130,13 @@ class Exposures(QTableWidget):
 
         remainingWidth = self.calcWidth(event)
         self.remainingWidth = remainingWidth
-        self.setColumnWidth(4, remainingWidth)
+        self.setColumnWidth(5, remainingWidth)
 
     def userCellChanged(self, row, column):
         self.item(row, column).valueChanged()
 
     def gather(self):
-        notes = [self.item(row, 4).build() for row in range(self.rowCount())]
+        notes = [self.item(row, 5).build() for row in range(self.rowCount())]
         return list(filter(None, notes))
 
 
