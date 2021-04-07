@@ -192,8 +192,8 @@ class CmdRow(object):
 
     def updateInfo(self, reply):
 
-        if 'sps_sequence' in reply.keywords:
-            self.setSequence(*reply.keywords['sps_sequence'].values)
+        if 'sequence' in reply.keywords:
+            self.setSequence(*reply.keywords['sequence'].values)
 
         if 'experiment' in reply.keywords:
             self.setExperiment(*reply.keywords['experiment'].values)
@@ -207,7 +207,7 @@ class CmdRow(object):
 
         self.panelwidget.scheduler.nextSVP()
 
-    def setSequence(self, sequenceId, seqtype, cmdStr, name, comments, *args):
+    def setSequence(self, sequenceId, seqtype, status, cmdStr, name, comments, *args):
 
         self.id = int(sequenceId)
         self.seqtype = seqtype
