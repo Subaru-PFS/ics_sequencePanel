@@ -192,13 +192,16 @@ class CmdRow(object):
 
     def updateInfo(self, reply):
 
-        if 'sequence' in reply.keywords:
+        if 'sps_sequence' in reply.keywords:
+            self.setSPSSequence(*reply.keywords['sps_sequence'].values)
+
+        elif 'sequence' in reply.keywords:
             self.setSequence(*reply.keywords['sequence'].values)
 
-        if 'experiment' in reply.keywords:
+        elif 'experiment' in reply.keywords:
             self.setExperiment(*reply.keywords['experiment'].values)
 
-        if 'subCommand' in reply.keywords:
+        elif 'subCommand' in reply.keywords:
             self.updateSubCommand(*reply.keywords['subCommand'].values)
 
     def terminate(self, code, returnStr):
@@ -206,6 +209,17 @@ class CmdRow(object):
         self.setFinished() if code == ':' else self.setFailed()
 
         self.panelwidget.scheduler.nextSVP()
+
+    def setSPSSequence(self, sequenceId, seqtype, cmdStr, name, comments, status, *args):
+
+        self.id = int(sequenceId)
+        self.seqtype = seqtype
+        self.name = name
+        self.comments = comments
+        self.cmdStr = cmdStr
+        self.buttonEye.setEnabled(True)
+
+        self.panelwidget.updateTable()
 
     def setSequence(self, sequenceId, seqtype, status, cmdStr, name, comments, *args):
 
