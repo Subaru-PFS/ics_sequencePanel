@@ -10,8 +10,14 @@ from sequencePanel.utils import visitsFromSet, spsExposure
 class DataFlag(QTableWidgetItem):
     values = ['0', '1', 'OK', 'BAD']
     flags = dict(OK=0, BAD=1)
+    revFlags = dict([(v,k) for k,v in flags.items()])
 
     def __init__(self, dataFlag):
+        try:
+            dataFlag = DataFlag.revFlags[dataFlag]
+        except:
+            dataFlag = ""
+
         self.current = dataFlag
         QTableWidgetItem.__init__(self, dataFlag)
         self.setTextAlignment(Qt.AlignCenter)
@@ -19,12 +25,12 @@ class DataFlag(QTableWidgetItem):
             self.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
     def valueChanged(self):
+
         current = self.text().upper().strip()
         if current and current not in DataFlag.values:
             self.tableWidget().panelWidget.mwindow.critical(f'{current} is not an existing flag :{DataFlag.values}')
         else:
             self.current = current
-
         self.setText(self.current)
 
     def value(self):
@@ -51,7 +57,7 @@ class Notes(QTableWidgetItem):
 
     def valueChanged(self):
         if self.text() and not self.dataFlag.text():
-            self.dataFlag.setText('OK')
+            self.dataFlag.setText('BAD')
 
     def build(self):
         if not self.text() or self.locked:
