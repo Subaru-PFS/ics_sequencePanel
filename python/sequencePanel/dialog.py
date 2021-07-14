@@ -1,12 +1,13 @@
 __author__ = 'alefur'
 
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QLabel, QDialog, QDialogButtonBox, QGroupBox
+from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QDialog, QDialogButtonBox, QGroupBox
 from opdb import utils, opdb
 from sequencePanel.sequence import CmdRow
 from sequencePanel.utils import stripQuotes, stripField
 from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
 
 dcbArcLamps = ['argon', 'neon', 'krypton', 'hgar']
+
 
 class CmdStr(LineEdit):
     def __init__(self, sequence, *args, **kwargs):
@@ -35,6 +36,7 @@ class EditableValue(LineEdit):
             else:
                 return f'{self.key}={text}'
 
+
 class ExposureTime(QGroupBox):
     def __init__(self, sequence, lamps=None):
         lamps = [] if lamps is None else lamps
@@ -50,8 +52,8 @@ class ExposureTime(QGroupBox):
         for i, key in enumerate(lamps):
             label, editableValue = Label(key), EditableValue(sequence, key, '')
             self.fields.append(editableValue)
-            self.grid.addWidget(label, i+1, 0)
-            self.grid.addWidget(editableValue, i+1, 1)
+            self.grid.addWidget(label, i + 1, 0)
+            self.grid.addWidget(editableValue, i + 1, 1)
 
         self.setLayout(self.grid)
 
@@ -95,7 +97,6 @@ class SequenceLayout(QGridLayout):
             exptime = ExposureTime(self, lamps=lampExptime)
             self.fields.extend(exptime.fields)
             self.addWidget(exptime, self.rowCount(), 0, exptime.grid.rowCount(), 2)
-
 
         for i, (key, value) in enumerate(kwargs.items()):
             nRows = self.rowCount()
@@ -142,10 +143,12 @@ class DitheredFlats(SequenceLayout):
             if field.key == 'switchOff':
                 field.setText('False')
 
+
 class ScienceObject(SequenceLayout):
     def __init__(self):
         SequenceLayout.__init__(self, 'scienceObject', 'iic scienceObject', exptime=15,
                                 options=['duplicate', 'cam'])
+
 
 class ScienceArc(SequenceLayout):
     def __init__(self):
@@ -189,6 +192,7 @@ class Flats(SequenceLayout):
         for field in self.fields:
             if field.key == 'switchOff':
                 field.setText('False')
+
 
 class SlitThroughFocus(SequenceLayout):
     def __init__(self):
@@ -234,6 +238,8 @@ class Custom(SequenceLayout):
 
 
 class Previous(SequenceLayout):
+    flagToText = {0: 'OK', 1: 'FAILED'}
+
     def __init__(self):
         QGridLayout.__init__(self)
 
@@ -262,7 +268,7 @@ class Previous(SequenceLayout):
         self.addWidget(Label('status'), 5, 0)
         self.addWidget(self.cmdStatus, 5, 1)
 
-        df = utils.fetch_query(opdb.OpDB.url, 'select max(visit_set_id) from sps_sequence')
+        df = utils.fetch_query(opdb.OpDB.url, 'select max(visit_set_id) from iic_sequence')
         max_visit_set_id, = df.loc[0].values
         self.visitSetId.setRange(1, max_visit_set_id)
         self.visitSetId.valueChanged.connect(self.load)
@@ -273,15 +279,15 @@ class Previous(SequenceLayout):
         return self.seqtypeWidget.text()
 
     def load(self):
-        query = f'select sequence_type, name, comments, cmd_str, status from sps_sequence where visit_set_id={self.visitSetId.value()}'
+        query = f'select sequence_type, name, comments, cmd_str, status_flag from iic_sequence inner join iic_sequence_status on iic_sequence.visit_set_id=iic_sequence_status.visit_set_id where iic_sequence.visit_set_id={self.visitSetId.value()} '
         try:
             df = utils.fetch_query(opdb.OpDB.url, query)
-            seqtype, name, comments, cmdStr, status = df.loc[0].values
+            seqtype, name, comments, cmdStr, status_flag = df.loc[0].values
             self.seqtypeWidget.setText(seqtype)
             self.name.setText(name)
             self.comments.setText(comments)
             self.cmdStr.setText(self.reformat(cmdStr))
-            self.cmdStatus.setText(status)
+            self.cmdStatus.setText(Previous.flagToText[status_flag])
 
         except:
             pass
