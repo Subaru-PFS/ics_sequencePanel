@@ -1,7 +1,7 @@
 import re
 
 import pandas as pd
-from pfs.utils.opdb import opDB
+from ics.utils.opdb import opDB
 
 
 def visitsFromSet(visit_set_id):
