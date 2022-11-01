@@ -1,7 +1,7 @@
 __author__ = 'alefur'
 
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QDialog, QDialogButtonBox, QGroupBox
-from opdb import utils, opdb
+from ics.utils.opdb import opDB
 from sequencePanel.sequence import CmdRow
 from sequencePanel.utils import stripQuotes, stripField
 from sequencePanel.widgets import Label, LineEdit, ComboBox, SpinBox
@@ -136,7 +136,7 @@ class MasterDarks(SequenceLayout):
 
 class DitheredFlats(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'ditheredFlats', 'iic ditheredFlats', pixels=0.3, nPositions=20,
+        SequenceLayout.__init__(self, 'ditheredFlats', 'iic ditheredFlats', pixelRange="-6,6,0.3",
                                 options=['exptime', 'halogen', 'duplicate', 'cam', 'warmingTime', 'switchOff'])
 
         for field in self.fields:
@@ -210,8 +210,8 @@ class DetectorThroughFocus(SequenceLayout):
 
 class DitheredArcs(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'ditheredArcs', 'iic dither arc', pixels=0.5,
-                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'doMinus', 'duplicate',
+        SequenceLayout.__init__(self, 'ditheredArcs', 'iic ditheredArcs', pixelStep=0.5,
+                                options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'duplicate',
                                          'cam', 'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
         for field in self.fields:
             if field.key == 'doMinus':
@@ -220,7 +220,7 @@ class DitheredArcs(SequenceLayout):
 
 class DefocusedArcs(SequenceLayout):
     def __init__(self):
-        SequenceLayout.__init__(self, 'defocusedArcs', 'iic defocus arc', position='-5,5,11',
+        SequenceLayout.__init__(self, 'defocusedArcs', 'iic defocusedArcs', position='-5,5,11',
                                 options=['exptime', 'argon', 'neon', 'krypton', 'hgar', 'duplicate', 'cam',
                                          'switchOn', 'warmingTime', 'switchOff', 'head', 'tail'])
 
@@ -238,20 +238,21 @@ class Custom(SequenceLayout):
 
 
 class Previous(SequenceLayout):
-    flagToText = {0: 'OK', 1: 'FAILED'}
+    flagToText = {0: 'OK', 1: 'FAILED', 2: 'aborted', 3: 'finished'}
 
     def __init__(self):
         QGridLayout.__init__(self)
 
-        self.visitSetId = SpinBox()
+        self.sequenceId = SpinBox()
         self.seqtypeWidget = Label('previous')
         self.name = LineEdit('')
         self.comments = LineEdit('')
         self.cmdStr = LineEdit('')
         self.cmdStatus = LineEdit('')
+        self.cmdOutput = LineEdit('')
 
-        self.addWidget(Label('visit_set_id'), 0, 0)
-        self.addWidget(self.visitSetId, 0, 1)
+        self.addWidget(Label('sequence_id'), 0, 0)
+        self.addWidget(self.sequenceId, 0, 1)
 
         self.addWidget(Label('sequence_type'), 1, 0)
         self.addWidget(self.seqtypeWidget, 1, 1)
@@ -265,30 +266,33 @@ class Previous(SequenceLayout):
         self.addWidget(Label('cmdStr'), 4, 0)
         self.addWidget(self.cmdStr, 4, 1)
 
-        self.addWidget(Label('status'), 5, 0)
+        self.addWidget(Label('didFail'), 5, 0)
         self.addWidget(self.cmdStatus, 5, 1)
 
-        df = utils.fetch_query(opdb.OpDB.url, 'select max(visit_set_id) from iic_sequence')
-        max_visit_set_id, = df.loc[0].values
-        self.visitSetId.setRange(1, max_visit_set_id)
-        self.visitSetId.valueChanged.connect(self.load)
-        self.visitSetId.setValue(max_visit_set_id)
+        self.addWidget(Label('cmdOutput'), 6, 0)
+        self.addWidget(self.cmdOutput, 6, 1)
+
+        [max_sequence_id] = opDB.fetchone('select max(sequence_id) from iic_sequence')
+        self.sequenceId.setRange(1, max_sequence_id)
+        self.sequenceId.valueChanged.connect(self.load)
+        self.sequenceId.setValue(max_sequence_id)
 
     @property
     def seqtype(self):
         return self.seqtypeWidget.text()
 
     def load(self):
-        query = f'select sequence_type, name, comments, cmd_str, status_flag from iic_sequence inner join iic_sequence_status on iic_sequence.visit_set_id=iic_sequence_status.visit_set_id where iic_sequence.visit_set_id={self.visitSetId.value()} '
+        query = f'select sequence_type, name, comments, cmd_str, status_flag, cmd_output from iic_sequence ' \
+                f'inner join iic_sequence_status on iic_sequence.sequence_id=iic_sequence_status.sequence_id ' \
+                f'where iic_sequence.sequence_id={self.sequenceId.value()} '
         try:
-            df = utils.fetch_query(opdb.OpDB.url, query)
-            seqtype, name, comments, cmdStr, status_flag = df.loc[0].values
+            seqtype, name, comments, cmdStr, status_flag, cmd_output = opDB.fetchone(query)
             self.seqtypeWidget.setText(seqtype)
             self.name.setText(name)
             self.comments.setText(comments)
             self.cmdStr.setText(self.reformat(cmdStr))
-            self.cmdStatus.setText(Previous.flagToText[status_flag])
-
+            self.cmdStatus.setText(Previous.flagToText[int(status_flag)])
+            self.cmdOutput.setText(cmd_output)
         except:
             pass
 
@@ -307,19 +311,16 @@ class Dialog(QDialog):
             masterBiases=MasterBiases,
             masterDarks=MasterDarks,
             ditheredFlats=DitheredFlats,
-            scienceObject=ScienceObject,
             scienceArc=ScienceArc,
             scienceTrace=ScienceTrace,
             biases=Biases,
             darks=Darks,
             arcs=Arcs,
             flats=Flats,
-            slitThroughFocus=SlitThroughFocus,
             detectorThroughFocus=DetectorThroughFocus,
             ditheredArcs=DitheredArcs,
             defocusedArcs=DefocusedArcs,
             previous=Previous,
-            custom=Custom,
             command=GenericCmd,
         )
 

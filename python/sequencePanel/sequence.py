@@ -221,7 +221,7 @@ class CmdRow(object):
 
         self.panelwidget.updateTable()
 
-    def setSequence(self, sequenceId, seqtype, status, cmdStr, name, comments, *args):
+    def setSequence(self, sequenceId, groupId, seqtype, name, comments, cmdStr, status, output, *args):
 
         self.id = int(sequenceId)
         self.seqtype = seqtype

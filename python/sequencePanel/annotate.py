@@ -1,8 +1,8 @@
 __author__ = 'alefur'
-import pandas as pd
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QDialogButtonBox, QTableWidget, QTableWidgetItem, QMessageBox
-from opdb import utils, opdb
+from ics.utils.opdb import opDB
 from sequencePanel.dialog import Previous
 from sequencePanel.utils import visitsFromSet, spsExposure
 
@@ -10,7 +10,7 @@ from sequencePanel.utils import visitsFromSet, spsExposure
 class DataFlag(QTableWidgetItem):
     values = ['0', '1', 'OK', 'BAD']
     flags = dict(OK=0, BAD=1)
-    revFlags = dict([(v,k) for k,v in flags.items()])
+    revFlags = dict([(v, k) for k, v in flags.items()])
 
     def __init__(self, dataFlag):
         try:
@@ -88,7 +88,7 @@ class SeqDescription(Previous):
 
     def load(self):
         Previous.load(self)
-        self.annotate.load(self.visitSetId.value())
+        self.annotate.load(self.sequenceId.value())
 
 
 class Exposures(QTableWidget):
@@ -109,9 +109,12 @@ class Exposures(QTableWidget):
         self.setRowCount(len(expList))
 
         for row, exp in expList.iterrows():
-            df = utils.fetch_query(opdb.OpDB.url,
-                                   f'select data_flag, notes from sps_annotation where pfs_visit_id={exp.visit} and sps_camera_id={exp.camId}')
-            dataFlag, notes = ('', '') if not len(df) else df.loc[0].values
+            try:
+                dataFlag, notes = opDB.fetchone(f'select data_flag, notes from sps_annotation where '
+                                                f'pfs_visit_id={exp.visit} and sps_camera_id={exp.camId}')
+            except TypeError:
+                dataFlag, notes = ('', '')
+
             dataFlag = DataFlag(dataFlag)
             expTime = round(float(exp.exptime), 3)
             self.setItem(row, 0, LockedItem(exp.visit))
@@ -190,7 +193,7 @@ class Annotate(QDialog):
 
         for kwargs in notes:
             try:
-                utils.insert(opdb.OpDB.url, 'sps_annotation',pd.DataFrame(kwargs, index=[0]))
+                opDB.insert('sps_annotation', **kwargs)
             except Exception as e:
                 self.panelwidget.mwindow.critical(str(e))
 

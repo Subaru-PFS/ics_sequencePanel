@@ -29,6 +29,20 @@ class AbortMessage(SafetyCheck):
         self.setText('Do you really wish to abort current sequence ?')
 
 
+class FinishMessage(SafetyCheck):
+    def __init__(self, **kwargs):
+        SafetyCheck.__init__(self, **kwargs)
+        self.setIcon(QMessageBox.Critical)
+        self.setText('Do you really wish to finish current sequence ?')
+
+
+class FinishNowMessage(SafetyCheck):
+    def __init__(self, **kwargs):
+        SafetyCheck.__init__(self, **kwargs)
+        self.setIcon(QMessageBox.Critical)
+        self.setText('Do you really wish to finish current sequence now ?')
+
+
 class StartMessage(SafetyCheck):
     def __init__(self, startdate, **kwargs):
         SafetyCheck.__init__(self, **kwargs)
@@ -40,6 +54,24 @@ class AbortButton(PushButton):
     def __init__(self):
         PushButton.__init__(self, 'ABORT')
         self.setColor('red')
+
+    def setColor(self, background, color="white"):
+        self.setStyleSheet("PushButton {font: 8pt; background-color: %s;color : %s ;}" % (background, color))
+
+
+class FinishButton(PushButton):
+    def __init__(self):
+        PushButton.__init__(self, 'FINISH')
+        self.setColor('blue')
+
+    def setColor(self, background, color="white"):
+        self.setStyleSheet("PushButton {font: 8pt; background-color: %s;color : %s ;}" % (background, color))
+
+
+class FinishNowButton(PushButton):
+    def __init__(self):
+        PushButton.__init__(self, 'FINISH NOW')
+        self.setColor('orange')
 
     def setColor(self, background, color="white"):
         self.setStyleSheet("PushButton {font: 8pt; background-color: %s;color : %s ;}" % (background, color))
@@ -95,6 +127,8 @@ class Scheduler(QGridLayout):
         self.stateWidget = CLabel('OFF')
         self.startButton = PushButton("START")
         self.stopButton = PushButton("STOP")
+        self.finishButton = FinishButton()
+        self.finishNowButton = FinishNowButton()
         self.abortButton = AbortButton()
 
         self.delayBar = DelayBar(self)
@@ -105,6 +139,8 @@ class Scheduler(QGridLayout):
 
         self.startButton.clicked.connect(self.start)
         self.stopButton.clicked.connect(self.stop)
+        self.finishButton.clicked.connect(self.finish)
+        self.finishNowButton.clicked.connect(self.finishNow)
         self.abortButton.clicked.connect(self.abort)
 
         self.addWidget(Label("Delay (min)"), 0, 1)
@@ -114,7 +150,9 @@ class Scheduler(QGridLayout):
 
         self.addWidget(self.startButton, 1, 2)
         self.addWidget(self.stopButton, 1, 2)
-        self.addWidget(self.abortButton, 1, 3)
+        self.addWidget(self.finishButton, 1, 3)
+        self.addWidget(self.finishNowButton, 1, 4)
+        self.addWidget(self.abortButton, 1, 5)
 
         self.setState('off')
 
@@ -132,6 +170,9 @@ class Scheduler(QGridLayout):
 
         self.startButton.setVisible(self.state == 'off')
         self.stopButton.setVisible(self.state in ['waiting', 'processing'])
+
+        self.finishButton.setVisible(bool(len(self.activated)))
+        self.finishNowButton.setVisible(bool(len(self.activated)))
         self.abortButton.setVisible(bool(len(self.activated)))
 
     def start(self):
@@ -192,5 +233,29 @@ class Scheduler(QGridLayout):
         if msgBox.exec() != QMessageBox.Ok:
             return
 
-        self.panelwidget.sendCommand(fullCmd='iic sps abort', timeLim=10)
+        self.panelwidget.sendCommand(fullCmd='iic sps abortExposure', timeLim=10)
+        self.doAbort = True
+
+    def finish(self):
+        if not self.activated:
+            self.panelwidget.mwindow.critical('Nothing to finish here...')
+            return
+
+        msgBox = FinishMessage(parent=self.panelwidget)
+        if msgBox.exec() != QMessageBox.Ok:
+            return
+
+        self.panelwidget.sendCommand(fullCmd='iic sps finishExposure', timeLim=10)
+        self.doAbort = True
+
+    def finishNow(self):
+        if not self.activated:
+            self.panelwidget.mwindow.critical('Nothing to finish here...')
+            return
+
+        msgBox = FinishNowMessage(parent=self.panelwidget)
+        if msgBox.exec() != QMessageBox.Ok:
+            return
+
+        self.panelwidget.sendCommand(fullCmd='iic sps finishExposure now', timeLim=10)
         self.doAbort = True
