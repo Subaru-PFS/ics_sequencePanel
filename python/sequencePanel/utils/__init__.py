@@ -4,8 +4,8 @@ import pandas as pd
 from ics.utils.opdb import opDB
 
 
-def visitsFromSet(sequence_id):
-    return opDB.fetchall(f'select pfs_visit_id from visit_set where sequence_id={sequence_id}')
+def visitsFromSet(iic_sequence_id):
+    return opDB.fetchall(f'select pfs_visit_id from visit_set where iic_sequence_id={iic_sequence_id}')
 
 
 def spsExposure(visits):

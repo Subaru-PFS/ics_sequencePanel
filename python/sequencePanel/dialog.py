@@ -251,7 +251,7 @@ class Previous(SequenceLayout):
         self.cmdStatus = LineEdit('')
         self.cmdOutput = LineEdit('')
 
-        self.addWidget(Label('sequence_id'), 0, 0)
+        self.addWidget(Label('iic_sequence_id'), 0, 0)
         self.addWidget(self.sequenceId, 0, 1)
 
         self.addWidget(Label('sequence_type'), 1, 0)
@@ -272,10 +272,10 @@ class Previous(SequenceLayout):
         self.addWidget(Label('cmdOutput'), 6, 0)
         self.addWidget(self.cmdOutput, 6, 1)
 
-        [max_sequence_id] = opDB.fetchone('select max(sequence_id) from iic_sequence')
-        self.sequenceId.setRange(1, max_sequence_id)
+        [max_iic_sequence_id] = opDB.fetchone('select max(iic_sequence_id) from iic_sequence')
+        self.sequenceId.setRange(1, max_iic_sequence_id)
         self.sequenceId.valueChanged.connect(self.load)
-        self.sequenceId.setValue(max_sequence_id)
+        self.sequenceId.setValue(max_iic_sequence_id)
 
     @property
     def seqtype(self):
@@ -283,8 +283,8 @@ class Previous(SequenceLayout):
 
     def load(self):
         query = f'select sequence_type, name, comments, cmd_str, status_flag, cmd_output from iic_sequence ' \
-                f'inner join iic_sequence_status on iic_sequence.sequence_id=iic_sequence_status.sequence_id ' \
-                f'where iic_sequence.sequence_id={self.sequenceId.value()} '
+                f'inner join iic_sequence_status on iic_sequence.iic_sequence_id=iic_sequence_status.iic_sequence_id ' \
+                f'where iic_sequence.iic_sequence_id={self.sequenceId.value()} '
         try:
             seqtype, name, comments, cmdStr, status_flag, cmd_output = opDB.fetchone(query)
             self.seqtypeWidget.setText(seqtype)
