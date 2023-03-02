@@ -340,7 +340,13 @@ class Dialog(QDialog):
         self.comboType.setCurrentIndex(1)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Close)
+
+        buttonBox.button(QDialogButtonBox.Apply).setAutoDefault(True)
+        buttonBox.button(QDialogButtonBox.Apply).setDefault(True)
         buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.addSequence)
+
+        buttonBox.button(QDialogButtonBox.Close).setAutoDefault(False)
+        buttonBox.button(QDialogButtonBox.Close).setDefault(False)
         buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
 
         self.setLayout(vbox)
