@@ -43,6 +43,10 @@ class SubCommand(object):
             self.status = 'finished'
         elif didFail == 1:
             self.status = 'failed'
+        elif didFail == 2:
+            self.status = 'cancelled'
+        else:
+            raise ValueError(f'unknown status: {didFail}')
 
     def decode(self, returnStr):
         try:
