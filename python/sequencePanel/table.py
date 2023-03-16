@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QScrollBar
 
 class CenteredItem(QTableWidgetItem):
     color = {"init": ("#FF7D7D", "#000000"), "valid": ("#7DFF7D", "#000000"), "active": ("#4A90D9", "#FFFFFF"),
-             "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF")}
+             "finished": ("#5f9d63", "#FFFFFF"), "failed": ("#9d5f5f", "#FFFFFF"),  "cancelled": ("#BC8F8F", "#FFFFFF")}
 
     def __init__(self, cmdRow, attr, typeFunc, lock=False, align=Qt.AlignCenter):
         self.cmdRow = cmdRow
