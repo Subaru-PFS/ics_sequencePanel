@@ -115,7 +115,7 @@ class Table(QTableWidget):
         remainingWidth = event.size().width() - sum([self.columnWidth(j) for j in autoResize])
 
         for col, ratio in Table.colwidthRatio.items():
-            self.setColumnWidth(col, ratio * remainingWidth)
+            self.setColumnWidth(col, int(round(ratio * remainingWidth)))
 
         QTableWidget.resizeEvent(self, event)
 
